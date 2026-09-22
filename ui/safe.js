@@ -75,28 +75,56 @@ browseBackupDirectory = async function() {
     await refreshSafeWorkspace();
 };
 
+// The password/verification-word fields ask for something most people never
+// need: encryption is opt-in (unchecked by default) for a new backup, and a
+// snapshot only needs a word typed in to restore it if it was itself made
+// with encryption on. Showing the fields unconditionally meant everyone saw
+// a password prompt every time, whether or not anything they were doing
+// actually involved one. This keeps them out of sight until they're relevant.
+function onEncryptToggle() {
+    const on = document.getElementById('encrypt-backup').checked;
+    document.getElementById('confirm-password-field').hidden = !on;
+    if (currentMode === 'backup') document.getElementById('safe-password-section').hidden = !on;
+}
+
+function updatePasswordVisibility() {
+    if (currentMode === 'backup') {
+        onEncryptToggle();
+        return;
+    }
+    const selector = document.getElementById('snapshot-select');
+    const selected = selector.selectedOptions[0];
+    const needsPassword = !!selected && selected.dataset.encrypted === '1';
+    document.getElementById('safe-password-section').hidden = !needsPassword;
+    document.getElementById('unlock-snapshot').hidden = !needsPassword;
+}
+
 async function refreshSafeWorkspace() {
     if (safeBusy || !window.pywebview) return;
     try {
         const restore = currentMode === 'restore';
         document.getElementById('safe-restore-controls').hidden = !restore;
         document.getElementById('safe-encrypt-controls').hidden = restore;
-        document.getElementById('unlock-snapshot').hidden = !restore;
         const selector = document.getElementById('snapshot-select');
         const previous = selector.value;
         selector.replaceChildren();
         const snapshots = await safeApi().list_snapshots();
         for (const snapshot of snapshots) {
             const label = `${new Date(snapshot.created).toLocaleString('ar-EG')} | ${snapshot.status} | ${snapshot.files} ملف ${snapshot.encrypted ? '🔒' : ''}`;
-            selector.add(new Option(label, snapshot.id));
+            const option = new Option(label, snapshot.id);
+            option.dataset.encrypted = snapshot.encrypted ? '1' : '0';
+            selector.add(option);
         }
-        selector.add(new Option(t('snapshot-library-option'), 'library'));
+        const libraryOption = new Option(t('snapshot-library-option'), 'library');
+        libraryOption.dataset.encrypted = '0';
+        selector.add(libraryOption);
         if (Array.from(selector.options).some(option => option.value === previous)) selector.value = previous;
         const recovery = document.getElementById('recovery-select');
         recovery.replaceChildren();
         for (const point of await safeApi().list_recovery_points()) {
             recovery.add(new Option(`${point.id} | ${point.status}${point.encrypted ? ' 🔒' : ''}`, point.id));
         }
+        updatePasswordVisibility();
         await loadSafeItems();
     } catch (error) {
         safeMessage(String(error));
@@ -260,8 +288,10 @@ executeMainAction = async function() {
         apps_closed: document.getElementById('apps-closed').checked
     };
     if (currentMode === 'backup') {
+        // Encryption is opt-in (the checkbox defaults unchecked) - no prompt
+        // either way here now. Checking the box is itself the "yes, and I
+        // accept typing/keeping a word for it" signal; nothing further to ask.
         if (options.encrypt && !options.password) return alert('اكتب كلمة تحقق للتشفير.');
-        if (!options.encrypt && !confirm('ستُحفظ البيانات بدون تشفير وقد تحتوي مفاتيح ومحادثات خاصة. هل تريد المتابعة؟')) return;
         if (options.encrypt && document.getElementById('confirm-password').value !== options.password) return alert('كلمتا التحقق غير متطابقتين.');
     } else if (!options.apps_closed) {
         return alert('أغلق البرامج المستهدفة، ثم فعّل تأكيد الإغلاق.');

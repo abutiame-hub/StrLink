@@ -1443,18 +1443,22 @@
             <section id="safe-workspace" dir="rtl" style="padding:18px;border:1px solid var(--border);border-radius:12px;margin-bottom:18px">
                 <div class="section-head"><div class="icon-badge badge-green"><svg class="icon"><use href="#icon-install"/></svg></div><div><h3 id="txt-safe-title">StrLink 2 — نسخ واستعادة آمنة</h3><p id="txt-safe-desc">اختَر العناصر المطلوبة صراحةً. النسخ الجديدة مستقلة لكل برنامج، والملفات القديمة لن تُحذف. ملفات الإعدادات والاتصالات قد تحتوي مفاتيح سرية. اكتشاف مجلد البيانات لا يعني أن البرنامج مثبت.</p></div></div>
                 <div id="safe-restore-controls">
-                    <label><span id="txt-safe-snapshot-label">مصدر الاستعادة</span> <select id="snapshot-select" onchange="loadSafeItems()" style="max-width:100%"></select></label>
+                    <label><span id="txt-safe-snapshot-label">مصدر الاستعادة</span> <select id="snapshot-select" onchange="updatePasswordVisibility(); loadSafeItems();" style="max-width:100%"></select></label>
                     <button class="btn-outline" onclick="refreshSafeWorkspace()" id="txt-safe-refresh-btn">تحديث النسخ</button>
                     <label style="display:block;margin:12px 0"><span id="txt-safe-conflict-label">التعامل مع الملفات الموجودة</span>
                         <select id="conflict-policy"><option value="skip" id="txt-safe-conflict-skip">تخطي الموجود — الافتراضي الآمن</option><option value="replace" id="txt-safe-conflict-replace">استبدال مع حفظ نسخة تراجع</option></select>
                     </label>
                     <label><input id="apps-closed" type="checkbox"> <span id="txt-safe-apps-closed">أغلقت البرامج المستهدفة قبل الاستعادة</span></label>
                 </div>
-                <div id="safe-encrypt-controls" style="margin:12px 0"><label><input id="encrypt-backup" type="checkbox" checked> <span id="txt-safe-encrypt-label">تشفير محتوى النسخة بكلمة تحقق (AES-256-GCM)</span></label><label style="display:block;margin:8px 0"><span id="txt-safe-confirm-label">تأكيد كلمة التحقق</span> <input id="confirm-password" type="password" autocomplete="new-password" value="Abutiame"></label></div>
-                <label style="display:block;margin:12px 0"><span id="txt-safe-password-label">كلمة التحقق</span> <input id="backup-password" type="password" autocomplete="new-password" placeholder="كلمة تحقق للتشفير" value="Abutiame" style="max-width:100%"></label>
-                <p style="margin:0 0 12px;font-size:12px;color:var(--text-muted);" id="txt-safe-password-hint">مُعبّأة افتراضيًا بكلمتك — غيّرها وقتما حبيت. أي حد يعرف كلمة التحقق دي يقدر يفك أي نسخة مشفّرة بيها.</p>
-                <button id="unlock-snapshot" class="btn-outline" onclick="loadSafeItems()"><span id="txt-safe-unlock-btn">فتح قائمة عناصر النسخة</span></button>
-                <p style="font-size:12px;color:var(--text-muted)" id="txt-safe-password-warning">احتفظ بكلمة المرور؛ لا توجد طريقة لاستعادتها. أسماء الملفات وتاريخ النسخة تظل ظاهرة في الفهرس، بينما المحتوى مشفّر. النسخ غير المشفّرة ونسخ التراجع التابعة لها تحتوي بيانات مقروءة.</p>
+                <div id="safe-encrypt-controls" style="margin:12px 0"><label><input id="encrypt-backup" type="checkbox" onchange="onEncryptToggle()"> <span id="txt-safe-encrypt-label">تشفير محتوى النسخة بكلمة تحقق (AES-256-GCM)</span></label>
+                    <label id="confirm-password-field" hidden style="display:block;margin:8px 0"><span id="txt-safe-confirm-label">تأكيد كلمة التحقق</span> <input id="confirm-password" type="password" autocomplete="new-password" value="Abutiame"></label>
+                </div>
+                <div id="safe-password-section" hidden>
+                    <label style="display:block;margin:12px 0"><span id="txt-safe-password-label">كلمة التحقق</span> <input id="backup-password" type="password" autocomplete="new-password" placeholder="كلمة تحقق للتشفير" value="Abutiame" style="max-width:100%"></label>
+                    <p style="margin:0 0 12px;font-size:12px;color:var(--text-muted);" id="txt-safe-password-hint">مُعبّأة افتراضيًا بكلمتك — غيّرها وقتما حبيت. أي حد يعرف كلمة التحقق دي يقدر يفك أي نسخة مشفّرة بيها.</p>
+                    <button id="unlock-snapshot" class="btn-outline" onclick="loadSafeItems()"><span id="txt-safe-unlock-btn">فتح قائمة عناصر النسخة</span></button>
+                    <p style="font-size:12px;color:var(--text-muted)" id="txt-safe-password-warning">احتفظ بكلمة المرور؛ لا توجد طريقة لاستعادتها. أسماء الملفات وتاريخ النسخة تظل ظاهرة في الفهرس، بينما المحتوى مشفّر. النسخ غير المشفّرة ونسخ التراجع التابعة لها تحتوي بيانات مقروءة.</p>
+                </div>
                 <p id="safe-status" role="status" aria-live="polite" style="margin:12px 0"></p>
                 <input id="safe-filter" type="search" placeholder="بحث في العناصر" oninput="renderSafeItems()" style="width:100%;padding:10px;margin:10px 0">
                 <button class="btn-outline" onclick="selectSafeItems(true)" id="txt-safe-select-all-btn">تحديد العناصر الظاهرة</button>
