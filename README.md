@@ -1,6 +1,7 @@
 # StrLink 
 Password:abutiame
 
+
 Windows desktop backup utility. Requires Microsoft Edge WebView2 Runtime.
 The EXE bundles Python; it is not digitally signed. A trusted signing certificate
 must be supplied by the publisher before signing a release.
