@@ -170,7 +170,15 @@ function visibleSafeItems() {
 
 // One icon per inventory category, matching the icon language used
 // everywhere else in the app (see the sprite in index.html).
-const SAFE_CATEGORY_ICONS = { skills: 'icon-library', sessions: 'icon-chat', settings: 'icon-settings', connections: 'icon-mcp', plugins: 'icon-plugin' };
+const SAFE_CATEGORY_ICONS = { skills: 'icon-library', sessions: 'icon-chat', settings: 'icon-settings', connections: 'icon-mcp', plugins: 'icon-plugin', data: 'icon-folder' };
+
+// Skills, MCP/connections, plugins, settings, sessions - in the order
+// someone scanning the list would look for them, not the incidental order
+// catalog() happens to produce (which interleaves them per-app). "data" -
+// a custom tool's undifferentiated contents - goes last since it's a
+// catch-all, not a real category. Anything with no entry here still
+// renders, just after every named category.
+const SAFE_CATEGORY_ORDER = ['skills', 'connections', 'plugins', 'settings', 'sessions', 'data'];
 
 function formatBytes(bytes) {
     if (!bytes) return '—';
@@ -197,47 +205,94 @@ function renderSafeItems() {
         return;
     }
 
-    const statusWord = currentLang === 'ar' ? { present: 'موجود', missing: 'غير موجود', type: 'النوع', name: 'الاسم', app: 'البرنامج', status: 'الحالة', size: 'الحجم' }
-                                              : { present: 'Present', missing: 'Not found', type: 'Type', name: 'Name', app: 'App', status: 'Status', size: 'Size' };
+    const statusWord = currentLang === 'ar' ? { present: 'موجود', missing: 'غير موجود', name: 'الاسم', app: 'البرنامج', status: 'الحالة', size: 'الحجم' }
+                                              : { present: 'Present', missing: 'Not found', name: 'Name', app: 'App', status: 'Status', size: 'Size' };
 
-    const table = document.createElement('table');
-    table.style.cssText = 'width:100%;border-collapse:collapse;font-size:13px;';
-    const thead = document.createElement('thead');
-    const th = (text) => `<th style="padding:9px 8px;">${escapeHtml(text)}</th>`;
-    thead.innerHTML = `<tr style="border-bottom:1px solid var(--border);text-align:start;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">
-        <th style="padding:9px 8px;width:36px;"></th>${th(statusWord.status)}${th(statusWord.type)}${th(statusWord.name)}${th(statusWord.app)}${th(statusWord.size)}
-    </tr>`;
-    table.append(thead);
-
-    const tbody = document.createElement('tbody');
+    // Skills, MCP/connections, plugins, settings and sessions each get their
+    // own collapsible section instead of one flat table - with a few
+    // thousand skills selected, the handful of MCP/connection rows used to
+    // be scattered and effectively invisible among them.
+    const groups = new Map();
     for (const item of items) {
-        const tr = document.createElement('tr');
-        tr.style.cssText = 'border-bottom:1px solid var(--border);';
-        const showStatus = currentMode === 'restore' && item.app !== 'library';
-        let statusCell = '';
-        if (showStatus) {
-            statusCell = item.present
-                ? `<span style="display:inline-flex;align-items:center;gap:5px;color:#34d399;"><svg class="icon"><use href="#icon-check-circle"/></svg>${escapeHtml(statusWord.present)}</span>`
-                : `<span style="display:inline-flex;align-items:center;gap:5px;color:var(--text-faded);"><svg class="icon"><use href="#icon-circle"/></svg>${escapeHtml(statusWord.missing)}</span>`;
-        }
-        const catIcon = SAFE_CATEGORY_ICONS[item.category] || 'icon-folder';
-        const catLabel = safeCategoryNames[item.category] || item.category;
-        tr.innerHTML = `
-            <td style="padding:9px 8px;"><input type="checkbox" class="safe-item-checkbox" ${safeSelection.has(item.id) ? 'checked' : ''}></td>
-            <td style="padding:9px 8px;white-space:nowrap;">${statusCell}</td>
-            <td style="padding:9px 8px;white-space:nowrap;color:var(--text-muted);"><span style="display:inline-flex;align-items:center;gap:6px;"><svg class="icon"><use href="#${catIcon}"/></svg>${escapeHtml(catLabel)}</span></td>
-            <td style="padding:9px 8px;overflow-wrap:anywhere;">${escapeHtml(item.name)}</td>
-            <td style="padding:9px 8px;color:var(--text-muted);white-space:nowrap;">${escapeHtml(item.app)}</td>
-            <td style="padding:9px 8px;color:var(--text-muted);white-space:nowrap;">${escapeHtml(formatBytes(item.size))}</td>
-        `;
-        tr.querySelector('.safe-item-checkbox').addEventListener('change', (ev) => {
-            ev.target.checked ? safeSelection.add(item.id) : safeSelection.delete(item.id);
-            updateSafeCounts();
-        });
-        tbody.append(tr);
+        const key = item.category;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
     }
-    table.append(tbody);
-    container.append(table);
+    const orderedKeys = [...SAFE_CATEGORY_ORDER.filter(key => groups.has(key)), ...[...groups.keys()].filter(key => !SAFE_CATEGORY_ORDER.includes(key))];
+
+    for (const category of orderedKeys) {
+        const groupItems = groups.get(category);
+        const catIcon = SAFE_CATEGORY_ICONS[category] || 'icon-folder';
+        const catLabel = safeCategoryNames[category] || category;
+        const groupId = 'safe-cat-' + category;
+
+        const section = document.createElement('div');
+        section.className = 'category-group open';
+
+        const header = document.createElement('div');
+        header.className = 'category-header';
+        header.innerHTML = `
+            <span class="category-title"><svg class="icon"><use href="#${catIcon}"/></svg>${escapeHtml(catLabel)} (${groupItems.length})</span>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);font-weight:400;" onclick="event.stopPropagation();">
+                <input type="checkbox" class="safe-category-select-all">${currentLang === 'ar' ? 'تحديد الكل' : 'Select all'}
+            </label>
+        `;
+        header.addEventListener('click', (ev) => {
+            if (ev.target.closest('label')) return;
+            section.classList.toggle('open');
+        });
+        const groupAvailableIds = new Set(groupItems.map(item => item.id));
+        const allSelected = groupItems.every(item => safeSelection.has(item.id));
+        const selectAllBox = header.querySelector('.safe-category-select-all');
+        selectAllBox.checked = allSelected;
+        selectAllBox.addEventListener('change', (ev) => {
+            for (const id of groupAvailableIds) ev.target.checked ? safeSelection.add(id) : safeSelection.delete(id);
+            renderSafeItems();
+        });
+        section.append(header);
+
+        const body = document.createElement('div');
+        body.className = 'safe-category-body';
+
+        const table = document.createElement('table');
+        table.style.cssText = 'width:100%;border-collapse:collapse;font-size:13px;';
+        const thead = document.createElement('thead');
+        const th = (text) => `<th style="padding:9px 8px;">${escapeHtml(text)}</th>`;
+        thead.innerHTML = `<tr style="border-bottom:1px solid var(--border);text-align:start;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">
+            <th style="padding:9px 8px;width:36px;"></th>${th(statusWord.status)}${th(statusWord.name)}${th(statusWord.app)}${th(statusWord.size)}
+        </tr>`;
+        table.append(thead);
+
+        const tbody = document.createElement('tbody');
+        for (const item of groupItems) {
+            const tr = document.createElement('tr');
+            tr.style.cssText = 'border-bottom:1px solid var(--border);';
+            const showStatus = currentMode === 'restore' && item.app !== 'library';
+            let statusCell = '';
+            if (showStatus) {
+                statusCell = item.present
+                    ? `<span style="display:inline-flex;align-items:center;gap:5px;color:#34d399;"><svg class="icon"><use href="#icon-check-circle"/></svg>${escapeHtml(statusWord.present)}</span>`
+                    : `<span style="display:inline-flex;align-items:center;gap:5px;color:var(--text-faded);"><svg class="icon"><use href="#icon-circle"/></svg>${escapeHtml(statusWord.missing)}</span>`;
+            }
+            tr.innerHTML = `
+                <td style="padding:9px 8px;"><input type="checkbox" class="safe-item-checkbox" ${safeSelection.has(item.id) ? 'checked' : ''}></td>
+                <td style="padding:9px 8px;white-space:nowrap;">${statusCell}</td>
+                <td style="padding:9px 8px;overflow-wrap:anywhere;">${escapeHtml(item.name)}</td>
+                <td style="padding:9px 8px;color:var(--text-muted);white-space:nowrap;">${escapeHtml(item.app)}</td>
+                <td style="padding:9px 8px;color:var(--text-muted);white-space:nowrap;">${escapeHtml(formatBytes(item.size))}</td>
+            `;
+            tr.querySelector('.safe-item-checkbox').addEventListener('change', (ev) => {
+                ev.target.checked ? safeSelection.add(item.id) : safeSelection.delete(item.id);
+                updateSafeCounts();
+                selectAllBox.checked = groupItems.every(row => safeSelection.has(row.id));
+            });
+            tbody.append(tr);
+        }
+        table.append(tbody);
+        body.append(table);
+        section.append(body);
+        container.append(section);
+    }
     updateSafeCounts();
 }
 

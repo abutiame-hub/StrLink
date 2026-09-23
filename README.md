@@ -1,4 +1,4 @@
-# StrLink 
+# StrLink 2.0
 
 Windows desktop backup utility. Requires Microsoft Edge WebView2 Runtime.
 The EXE bundles Python; it is not digitally signed. A trusted signing certificate
@@ -136,13 +136,21 @@ claimed token counts.
 - Cross-app direct transfer is disabled: incompatible settings must not be silently
   merged or overwritten. Per-app snapshot restore and legacy library deployment
   remain available.
-- Online packages are downloaded into `Quarantine` first. Suspicious packages,
-  repositories with no `SKILL.md` anywhere in the repo or its subfolders (searched
-  up to 3 levels deep, so multi-skill packs install as separate library entries),
-  and name conflicts remain quarantined. Transient clone failures (DNS, timeout,
+- Online packages are downloaded into `Quarantine` first. Suspicious packages and
+  name conflicts remain quarantined. Transient clone failures (DNS, timeout,
   dropped connection) are retried up to 3 times before being reported; a repo
   that genuinely doesn't exist or isn't public fails immediately instead. The
   heuristic scan is not a security guarantee. Review source before trusting it.
+- Skill downloads additionally require a `SKILL.md` somewhere in the repo or its
+  subfolders (searched up to 3 levels deep, so multi-skill packs install as
+  separate library entries); a repository with none stays quarantined instead of
+  installing. MCP server and plugin downloads have no such marker to check for,
+  so the whole repository is copied as-is into `Downloads/mcp/<name>` or
+  `Downloads/plugin/<name>` for manual review instead of `Skills_Library` -
+  neither is deployed into an AI tool automatically. An MCP server still needs
+  its dependencies installed and a manual entry added to the target tool's MCP
+  configuration; StrLink does not run or register it. A plugin's expected folder
+  layout varies by tool, so it must be placed manually too.
 - Portable export uses a new folder and excludes Snapshots, Recovery, credentials
   and conversations. Manually review skills/templates for embedded private data
   before sharing; the software does not promise that these files are secret-free.

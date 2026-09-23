@@ -330,8 +330,10 @@ class BackupEngine:
             folder = Path(self.api.skills_library_dir).resolve()
             manifest, key, entries = {"encrypted": False, "salt": ""}, None, []
             prefixes = {"claude": "skills", "codex": "skills", "gemini": "config/skills", "cursor": "skills"}
+            for tool in self.api._read_custom_tools():
+                prefixes[tool["id"]] = tool.get("skills_subfolder") or "skills"
             if not options.get("apps") or any(app not in prefixes for app in options["apps"]):
-                raise ValueError("Library deployment supports Claude Code, Codex, Gemini and Cursor only")
+                raise ValueError("Library deployment supports Claude Code, Codex, Gemini, Cursor and your added custom tools only")
             # This hashes every file in every selected skill - unavoidable to
             # safely tell create/replace/unchanged apart, but with a few
             # thousand skills selected it's real work, not instant. Preview

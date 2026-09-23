@@ -456,34 +456,6 @@
             margin-bottom: 8px;
         }
 
-        .filter-radio-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .filter-radio-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: var(--text-main);
-            cursor: pointer;
-            padding: 6px 8px;
-            border-radius: 6px;
-            transition: 0.15s;
-        }
-
-        .filter-radio-label:hover {
-            background: #182238;
-        }
-
-        .filter-radio-label input[type="radio"],
-        .filter-radio-label input[type="checkbox"] {
-            accent-color: var(--primary);
-            cursor: pointer;
-        }
-
         .category-chip-list {
             display: flex;
             flex-direction: column;
@@ -521,6 +493,47 @@
             display: flex;
             flex-direction: column;
             gap: 14px;
+        }
+
+        /* Skills / MCP / Plugins each run their own GitHub search and keep
+           their own cached results (see onlineSearchCache) - styled as tabs
+           so switching between them reads as "3 separate lists", not one
+           settings toggle, without ever fetching more than one at a time. */
+        .type-tab-bar {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .type-tab {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: 0.15s;
+        }
+
+        .type-tab:hover {
+            color: var(--text-main);
+        }
+
+        .type-tab.active,
+        .type-tab:has(input:checked) {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .type-tab input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
         }
 
         .search-bar-row {
@@ -569,6 +582,30 @@
         .search-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+        }
+
+        .search-btn:disabled,
+        .btn-outline:disabled {
+            opacity: 0.4;
+            cursor: default;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 6px;
+        }
+
+        .pagination-bar #online-page-indicator {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            min-width: 22px;
+            text-align: center;
         }
 
         .online-results-grid {
@@ -898,6 +935,16 @@
             display: grid;
         }
 
+        .safe-category-body {
+            display: none;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .category-group.open .safe-category-body {
+            display: block;
+        }
+
         .skill-item {
             display: flex;
             align-items: center;
@@ -1059,6 +1106,119 @@
             margin-bottom: 20px;
             white-space: pre-line;
             text-align: left;
+        }
+
+        /* Discovery Store download toasts. Anchored bottom-right with
+           physical (not logical) offsets so the corner never moves when the
+           page flips to dir="rtl" for Arabic - a fixed, predictable spot
+           regardless of language, per the user's specific request. */
+        .toast-stack {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1200;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 360px;
+            max-width: calc(100vw - 40px);
+            pointer-events: none;
+        }
+
+        .toast-card {
+            pointer-events: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+            /* A visibly heavier shadow than the modal's - toasts float
+               directly over page content (no dimmed backdrop behind them
+               the way a modal has), so the shadow alone has to read as
+               "this layer is above everything else". */
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+            animation: toast-in 0.18s ease-out;
+        }
+
+        @keyframes toast-in {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .toast-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-shrink: 0;
+            justify-content: center;
+        }
+
+        .toast-close {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            align-self: flex-start;
+        }
+
+        .toast-close:hover {
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
+        .toast-btn {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 10px;
+            border-radius: 7px;
+            cursor: pointer;
+            white-space: nowrap;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .toast-btn-primary {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+        }
+
+        .toast-btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .toast-body {
+            min-width: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .toast-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .toast-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 3px;
+            overflow-wrap: anywhere;
         }
     </style>
 </head>
@@ -1260,25 +1420,7 @@
                     <!-- Left Filter Panel -->
                     <div class="filter-panel">
                         <div>
-                            <div class="panel-heading" id="txt-select-type">1. Select Type</div>
-                            <div class="filter-radio-group">
-                                <label class="filter-radio-label">
-                                    <input type="radio" name="disc_type" value="skills" checked onchange="triggerAutoSearch()">
-                                    <span id="txt-type-skills">Skills (المهارات)</span>
-                                </label>
-                                <label class="filter-radio-label">
-                                    <input type="radio" name="disc_type" value="mcp" onchange="triggerAutoSearch()">
-                                    <span id="txt-type-mcp">MCP Servers (خوادم MCP)</span>
-                                </label>
-                                <label class="filter-radio-label">
-                                    <input type="radio" name="disc_type" value="plugins" onchange="triggerAutoSearch()">
-                                    <span id="txt-type-plugins">Plugins (إضافات)</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div class="panel-heading" id="txt-select-category">2. Select Category</div>
+                            <div class="panel-heading" id="txt-select-category">Select Category</div>
                             <div class="category-chip-list">
                                 <div class="cat-chip active" id="chip-ui" onclick="selectCategoryChip('ui')">
                                     <span id="txt-cat-ui">UI / UX & Design</span>
@@ -1314,6 +1456,23 @@
 
                     <!-- Right Search & Results -->
                     <div class="content-panel">
+                        <div class="type-tab-bar">
+                            <label class="type-tab active">
+                                <input type="radio" name="disc_type" value="skills" checked onchange="triggerAutoSearch()">
+                                <svg class="icon"><use href="#icon-code"/></svg>
+                                <span id="txt-type-skills">Skills</span>
+                            </label>
+                            <label class="type-tab">
+                                <input type="radio" name="disc_type" value="mcp" onchange="triggerAutoSearch()">
+                                <svg class="icon"><use href="#icon-mcp"/></svg>
+                                <span id="txt-type-mcp">MCP Servers</span>
+                            </label>
+                            <label class="type-tab">
+                                <input type="radio" name="disc_type" value="plugins" onchange="triggerAutoSearch()">
+                                <svg class="icon"><use href="#icon-plugin"/></svg>
+                                <span id="txt-type-plugins">Plugins</span>
+                            </label>
+                        </div>
                         <div class="search-bar-row">
                             <div class="search-input-wrap">
                                 <input type="text" id="online-search-input" placeholder="Optional: Type specific keywords or leave blank for top category ranked items..." onkeypress="if(event.key==='Enter') executeDiscoverySearch()">
@@ -1324,6 +1483,11 @@
                                 <option value="updated" id="txt-sort-updated">🕒 Recently Updated</option>
                                 <option value="name" id="txt-sort-name">🔤 Name (A-Z)</option>
                                 <option value="size" id="txt-sort-size">📦 Smallest Size</option>
+                            </select>
+                            <select id="online-installed-filter" class="btn-storage" style="cursor:pointer;" onchange="handleInstalledFilterChange()" title="Filter by download status">
+                                <option value="all" id="txt-filter-all">All results</option>
+                                <option value="new" id="txt-filter-new">🆕 New only (not downloaded)</option>
+                                <option value="installed" id="txt-filter-downloaded">✔ Already downloaded</option>
                             </select>
                             <button class="search-btn" onclick="executeDiscoverySearch()">
                                 <span id="txt-search-online-btn">Search Online</span> 🌐
@@ -1338,8 +1502,10 @@
                             <!-- Populated Dynamically -->
                         </div>
 
-                        <div style="text-align:center; margin-top:6px;">
-                            <button class="btn-outline" id="online-load-more-btn" style="display:none;" onclick="loadMoreOnlineResults()">Load More ⬇</button>
+                        <div class="pagination-bar" id="online-pagination-bar" style="display:none;">
+                            <button class="btn-outline" id="online-prev-page-btn" onclick="changeOnlinePage(-1)">⬅ <span id="txt-prev-page-btn">Previous Page</span></button>
+                            <span id="online-page-indicator">1</span>
+                            <button class="search-btn" id="online-next-page-btn" onclick="changeOnlinePage(1)"><span id="txt-next-page-btn">Next Page</span> ➡</button>
                         </div>
                     </div>
 
@@ -1616,10 +1782,17 @@
             <div class="modal-icon">✔</div>
             <h3 id="modal-title">Operation Completed Successfully!</h3>
             <p id="modal-msg">StrLink has processed the requested action with complete data integrity.</p>
-            <button class="btn-outline" style="margin: 0 auto 10px;" id="modal-open-folder-btn" onclick="openLastInstalledFolder()" hidden><svg class="icon"><use href="#icon-folder"/></svg> <span id="txt-modal-open-folder-btn">Open Folder</span></button>
             <button class="btn-action" style="margin: 0 auto;" onclick="closeModal()" id="txt-modal-done-btn">Great, Done!</button>
         </div>
     </div>
+
+    <!-- Bottom-right toast stack for Discovery Store download results -
+         fixed to the bottom-right corner regardless of language/RTL (see
+         .toast-stack: it uses physical right/bottom, not logical
+         inset-inline, on purpose), stacks multiple at once instead of a
+         single blocking modal, and replaces the raw OS alert() box that
+         used to report download failures. -->
+    <div class="toast-stack" id="toast-stack"></div>
 
     <!-- AI-tool scan: permission modal (explicit allow/deny before any wider install scan) -->
     <div class="modal-overlay" id="modal-scan-consent">
@@ -1681,12 +1854,12 @@
                 'diagnostics-log': '🩺 Diagnostics Log',
                 'export-portable': '💾 Export Portable Copy (USB) 📦',
                 'discovery-disclaimer': "⚠️ Results come from public GitHub repositories and are not vetted by StrLink. Skills can contain scripts your AI tool will run — skim a package's source on GitHub before downloading it into your library.",
-                'select-type': '1. Select Type',
                 'type-skills': 'Skills', 'type-mcp': 'MCP Servers', 'type-plugins': 'Plugins',
-                'select-category': '2. Select Category',
+                'select-category': 'Select Category',
                 'cat-ui': 'UI / UX & Design', 'cat-dev': 'Coding & Development', 'cat-security': 'Cybersecurity & Pentest',
                 'cat-marketing': 'Marketing & E-Commerce', 'cat-business': 'Business & C-Level', 'cat-ai': 'AI, Agents & Prompting', 'cat-all': 'All Categories',
                 'sort-stars': '⭐ Most Stars', 'sort-best': '🎯 Best Match', 'sort-updated': '🕒 Recently Updated', 'sort-name': '🔤 Name (A-Z)', 'sort-size': '📦 Smallest Size',
+                'filter-all': 'All results', 'filter-new': '🆕 New only (not downloaded)', 'filter-downloaded': '✔ Already downloaded',
                 'search-online-btn': 'Search Online',
                 'online-status-initial': 'Select any category on the left to instantly load the highest rated packages from GitHub.',
                 'online-search-placeholder': 'Optional: Type specific keywords or leave blank for top category ranked items...',
@@ -1727,8 +1900,7 @@
                 'mode-online-title-2': 'Discovery Store',
                 'discovery-subtitle': 'Find and download AI skills, MCP servers, and plugins from the community',
                 'fetching-github': 'Fetching top ranked repositories from GitHub... 🌐',
-                'loading-more': 'Loading... ⏳',
-                'load-more-btn': 'Load More ⬇',
+                'prev-page-btn': 'Previous Page', 'next-page-btn': 'Next Page',
                 'no-items-found': 'No items found. Try another category or keyword.',
                 'op-completed-title': 'Operation Completed!',
                 'op-completed-msg': 'StrLink has executed the tasks with complete data verification.',
@@ -1794,7 +1966,6 @@
                 'tg-ignored-dirs': 'Largest excluded folders', 'tg-top-files': 'Largest indexed files',
                 'handoff-notes-placeholder': "Your summary is the source of truth for what's actually complete; a tool call appearing in the log doesn't prove it succeeded.",
                 'transfer-use-restore-btn': 'Direct sync is disabled for safety - use preview-based restore →',
-                'modal-open-folder-btn': 'Open Folder',
                 'tg-source-tool-label': 'AI tool this project uses',
                 'discovery-download-dest': 'Downloads are saved into:',
                 'discovery-change-dest': 'Change',
@@ -1802,6 +1973,7 @@
                 'stat-files': 'Files',
                 'remove-custom-tool': 'Remove',
                 'custom-tool-name-prompt': "This tool's name (shown on its card):",
+                'custom-tool-skills-prompt': "Folder where this tool keeps its skills, relative to the folder you just picked (leave as \"skills\" if unsure). Used to show what's already there and to install skills from your Library into it.",
                 'custom-tool-remove-confirm': 'Stop tracking this custom tool? Nothing on disk is deleted.',
             },
             ar: {
@@ -1826,12 +1998,12 @@
                 'diagnostics-log': '🩺 سجل التشخيص',
                 'export-portable': '💾 تصدير نسخة محمولة (USB) 📦',
                 'discovery-disclaimer': '⚠️ النتائج قادمة من مستودعات GitHub العامة وغير مُراجَعة من StrLink. قد تحتوي المهارات على أكواد سيتم تنفيذها فعليًا — راجع كود المهارة على GitHub قبل تنزيلها إلى مكتبتك.',
-                'select-type': '١. اختر النوع',
                 'type-skills': 'مهارات', 'type-mcp': 'خوادم MCP', 'type-plugins': 'إضافات',
-                'select-category': '٢. اختر التصنيف',
+                'select-category': 'اختر التصنيف',
                 'cat-ui': 'تصميم وواجهات UI/UX', 'cat-dev': 'برمجة وتطوير', 'cat-security': 'أمن سيبراني واختبار اختراق',
                 'cat-marketing': 'تسويق وتجارة إلكترونية', 'cat-business': 'أعمال وإدارة', 'cat-ai': 'ذكاء اصطناعي ووكلاء', 'cat-all': 'كل التصنيفات',
                 'sort-stars': '⭐ الأكثر نجومًا', 'sort-best': '🎯 الأفضل تطابقًا', 'sort-updated': '🕒 الأحدث تحديثًا', 'sort-name': '🔤 الاسم (أ-ي)', 'sort-size': '📦 الأصغر حجمًا',
+                'filter-all': 'كل النتائج', 'filter-new': '🆕 الجديد فقط (لسه منزلش)', 'filter-downloaded': '✔ المُنزّل بالفعل',
                 'search-online-btn': 'بحث عبر الإنترنت',
                 'online-status-initial': 'اختر أي تصنيف من اليسار لتحميل أعلى الحزم تقييمًا من GitHub فورًا.',
                 'online-search-placeholder': 'اختياري: اكتب كلمات مفتاحية محددة أو اتركه فارغًا لعرض الأعلى تقييمًا في التصنيف...',
@@ -1872,8 +2044,7 @@
                 'mode-online-title-2': 'متجر الاكتشاف',
                 'discovery-subtitle': 'ابحث وحمّل مهارات وخوادم MCP وإضافات من المجتمع',
                 'fetching-github': 'جارٍ إحضار أعلى المستودعات تقييمًا من GitHub... 🌐',
-                'loading-more': 'جارٍ التحميل... ⏳',
-                'load-more-btn': 'تحميل المزيد ⬇',
+                'prev-page-btn': 'الصفحة السابقة', 'next-page-btn': 'الصفحة التالية',
                 'no-items-found': 'لا توجد نتائج. جرّب تصنيفًا أو كلمة بحث أخرى.',
                 'op-completed-title': 'تمت العملية بنجاح!',
                 'op-completed-msg': 'نفّذ StrLink المهام المطلوبة مع التحقق الكامل من سلامة البيانات.',
@@ -1939,7 +2110,6 @@
                 'tg-ignored-dirs': 'أكبر المجلدات المستبعدة', 'tg-top-files': 'أكبر الملفات المفهرسة',
                 'handoff-notes-placeholder': 'ملخصك هو المرجع لما اكتمل فعلًا؛ استدعاء أداة في السجل لا يثبت نجاحها.',
                 'transfer-use-restore-btn': 'النقل المباشر موقف للحماية — استخدم الاستعادة بالمعاينة ←',
-                'modal-open-folder-btn': 'فتح المجلد',
                 'tg-source-tool-label': 'أداة الذكاء الاصطناعي اللي بيستخدمها المشروع',
                 'discovery-download-dest': 'التحميلات بتتحفظ في:',
                 'discovery-change-dest': 'تغيير',
@@ -1948,6 +2118,7 @@
                 'remove-custom-tool': 'إزالة',
                 'custom-tool-name-prompt': 'اسم الأداة دي (هيظهر على بطاقتها):',
                 'custom-tool-remove-confirm': 'توقف متابعة الأداة المخصصة دي؟ مفيش حاجة هتتمسح من الجهاز.',
+                'custom-tool-skills-prompt': 'الفولدر اللي الأداة دي بتحفظ فيه المهارات بتاعتها، نسبةً للفولدر اللي اخترته (سيبها "skills" لو مش متأكد). بيستخدم عشان يوريك المهارات الموجودة فيها بالفعل، وعشان ينزّل لها مهارات من المكتبة عندك.',
             }
         };
 
@@ -2011,15 +2182,13 @@
             if (safePassword) safePassword.placeholder = t('safe-password-placeholder');
             const handoffNotes = document.getElementById('handoff-notes');
             if (handoffNotes) handoffNotes.placeholder = t('handoff-notes-placeholder');
-            const loadMoreBtn = document.getElementById('online-load-more-btn');
-            if (loadMoreBtn && !loadMoreBtn.disabled) loadMoreBtn.innerText = t('load-more-btn');
 
             // Re-render anything built from a JS template literal so it picks
             // up the new language too (static ids above only cover markup
             // that's actually in the HTML source).
             if (Object.keys(appsData).length) renderAppsGrid();
             if (Object.keys(categoriesData).length) renderCategories();
-            if (lastOnlineResults.length) renderOnlineResults(lastOnlineResults);
+            if (lastOnlineResults.length) renderOnlineResults(applyInstalledFilter(lastOnlineResults));
             updateActionButtons();
             if (typeof refreshTokenGuardStatus === 'function' && document.getElementById('tg-project')?.value) {
                 detectTokenGuardProject();
@@ -2162,52 +2331,100 @@
         const onlineSearchCache = new Map();
         const ONLINE_CACHE_TTL_MS = 5 * 60 * 1000;
 
-        async function executeDiscoverySearch(isLoadMore = false) {
+        async function executeDiscoverySearch(resetPage = true) {
             const grid = document.getElementById('online-results-grid');
-            const loadMoreBtn = document.getElementById('online-load-more-btn');
             const query = document.getElementById('online-search-input').value;
             const itemType = document.querySelector('input[name="disc_type"]:checked').value;
 
-            if (!isLoadMore) currentPage = 1;
+            if (resetPage) currentPage = 1;
             const cacheKey = `${itemType}|${selectedCategory}|${query.trim().toLowerCase()}|${currentSortBy}|${currentPage}`;
 
             const cached = onlineSearchCache.get(cacheKey);
-            if (!isLoadMore && cached && (Date.now() - cached.at) < ONLINE_CACHE_TTL_MS) {
+            if (cached && (Date.now() - cached.at) < ONLINE_CACHE_TTL_MS) {
                 lastOnlineResults = cached.results;
                 hasMoreResults = cached.hasMore;
-                renderOnlineResults(lastOnlineResults);
-                updateOnlineStatus(itemType, lastOnlineResults.length, cached.totalCount, true);
-                loadMoreBtn.style.display = hasMoreResults ? 'inline-block' : 'none';
+                refreshOnlineDisplay(itemType, cached.totalCount, true);
+                updatePaginationControls();
                 return;
             }
 
-            if (!isLoadMore) {
-                grid.innerHTML = `<div style="color: #38bdf8; font-size:14px; padding:20px;">${t('fetching-github')}</div>`;
-            } else {
-                loadMoreBtn.disabled = true;
-                loadMoreBtn.innerText = t('loading-more');
-            }
+            grid.innerHTML = `<div style="color: #38bdf8; font-size:14px; padding:20px;">${t('fetching-github')}</div>`;
+            setPaginationBusy(true);
 
             try {
                 if (window.pywebview) {
                     const res = await window.pywebview.api.search_online(itemType, selectedCategory, query, currentSortBy, currentPage);
                     if (res && res.success) {
-                        lastOnlineResults = isLoadMore ? lastOnlineResults.concat(res.results) : res.results;
+                        // Real pagination, not "load more": each page replaces
+                        // the grid with just that page's 30 results instead of
+                        // piling onto the previous page's.
+                        lastOnlineResults = res.results;
                         hasMoreResults = !!res.has_more;
                         onlineSearchCache.set(cacheKey, { results: lastOnlineResults, at: Date.now(), hasMore: hasMoreResults, totalCount: res.total_count });
-                        renderOnlineResults(lastOnlineResults);
-                        updateOnlineStatus(itemType, lastOnlineResults.length, res.total_count, false);
-                        loadMoreBtn.style.display = hasMoreResults ? 'inline-block' : 'none';
+                        refreshOnlineDisplay(itemType, res.total_count, false);
                     } else {
                         grid.innerHTML = `<div style="color: var(--red); padding:16px;">${escapeHtml(res.error || 'Search error')}</div>`;
+                        hasMoreResults = false;
+                        document.getElementById('online-pagination-bar').style.display = 'none';
                     }
                 }
             } catch (e) {
                 grid.innerHTML = `<div style="color: var(--red); padding:16px;">Error: ${escapeHtml(String(e))}</div>`;
+                hasMoreResults = false;
+                document.getElementById('online-pagination-bar').style.display = 'none';
             } finally {
-                loadMoreBtn.disabled = false;
-                loadMoreBtn.innerText = t('load-more-btn');
+                setPaginationBusy(false);
+                updatePaginationControls();
             }
+        }
+
+        // Previous/Next only ever needs the one page it's showing - no
+        // accumulation, so switching pages is exactly a resetPage=false
+        // search for currentPage±1, reusing the same 5-minute cache a
+        // repeat visit to any other page already gets.
+        function changeOnlinePage(delta) {
+            const next = currentPage + delta;
+            if (next < 1 || (delta > 0 && !hasMoreResults)) return;
+            currentPage = next;
+            executeDiscoverySearch(false);
+        }
+
+        function updatePaginationControls() {
+            const bar = document.getElementById('online-pagination-bar');
+            bar.style.display = lastOnlineResults.length || currentPage > 1 ? 'flex' : 'none';
+            document.getElementById('online-page-indicator').textContent = String(currentPage);
+            document.getElementById('online-prev-page-btn').disabled = currentPage <= 1;
+            document.getElementById('online-next-page-btn').disabled = !hasMoreResults;
+        }
+
+        function setPaginationBusy(busy) {
+            document.getElementById('online-prev-page-btn').disabled = busy || currentPage <= 1;
+            document.getElementById('online-next-page-btn').disabled = busy || !hasMoreResults;
+        }
+
+        // Client-side only - lastOnlineResults holds the current page's full
+        // results (needed for cache/re-sort), this just narrows what
+        // actually gets rendered, keyed off the already_installed flag
+        // search_online() computes per result by checking Skills_Library
+        // for a same-named folder.
+        let installedFilter = 'all';
+
+        function applyInstalledFilter(items) {
+            if (installedFilter === 'new') return items.filter(item => !item.already_installed);
+            if (installedFilter === 'installed') return items.filter(item => item.already_installed);
+            return items;
+        }
+
+        function handleInstalledFilterChange() {
+            installedFilter = document.getElementById('online-installed-filter').value;
+            const itemType = document.querySelector('input[name="disc_type"]:checked').value;
+            refreshOnlineDisplay(itemType, lastOnlineResults.length, false);
+        }
+
+        function refreshOnlineDisplay(itemType, totalCount, fromCache) {
+            const filtered = applyInstalledFilter(lastOnlineResults);
+            renderOnlineResults(filtered);
+            updateOnlineStatus(itemType, filtered.length, totalCount, fromCache);
         }
 
         function updateOnlineStatus(itemType, shownCount, totalCount, fromCache) {
@@ -2229,17 +2446,15 @@
                     if (currentSortBy === 'name') return (a.name || '').localeCompare(b.name || '');
                     return (a.size_kb || 0) - (b.size_kb || 0);
                 });
-                renderOnlineResults(lastOnlineResults);
                 const itemType = document.querySelector('input[name="disc_type"]:checked').value;
-                updateOnlineStatus(itemType, lastOnlineResults.length, lastOnlineResults.length, false);
+                refreshOnlineDisplay(itemType, lastOnlineResults.length, false);
             } else {
-                executeDiscoverySearch(false);
+                // A sort-order change is a fresh search (different ranking
+                // from page 1), not a page-to-page navigation - reset back
+                // to page 1 rather than re-fetching the current page number
+                // under the new order.
+                executeDiscoverySearch(true);
             }
-        }
-
-        function loadMoreOnlineResults() {
-            currentPage += 1;
-            executeDiscoverySearch(true);
         }
 
         let lastOnlineResults = [];
@@ -2253,25 +2468,37 @@
         function renderOnlineResults(items) {
             const grid = document.getElementById('online-results-grid');
             grid.innerHTML = '';
-            lastOnlineResults = items || [];
 
             if (!items || items.length === 0) {
                 grid.innerHTML = `<div style="color: var(--text-muted); padding:20px;">${t('no-items-found')}</div>`;
                 return;
             }
 
-            items.forEach((item, idx) => {
+            items.forEach((item) => {
                 const card = document.createElement('div');
                 card.className = 'online-card';
                 // Repo name/owner are GitHub-charset-safe, but the free-text
                 // description is fully attacker-controlled (any repo can set
                 // it), so everything here is escaped before going into
                 // innerHTML - and the download action is wired via a real
-                // listener + array index rather than string-built onclick
+                // listener + full_name lookup rather than string-built onclick
                 // attributes, so nothing from GitHub ever lands in HTML/JS
-                // attribute context unescaped.
+                // attribute context unescaped. full_name (not array index)
+                // because `items` here can be a filtered view of
+                // lastOnlineResults - an index into the filtered array
+                // wouldn't point at the right item in the full one.
                 const typeIcon = item.type === 'mcp' ? 'icon-mcp' : item.type === 'plugin' ? 'icon-plugin' : 'icon-code';
                 const typeTint = item.type === 'mcp' ? 'badge-purple' : item.type === 'plugin' ? 'badge-amber' : 'badge-blue';
+                const alreadyDownloadedHint = item.type === 'skill' ? 'Already in your Skills Library' : `Already in Downloads/${item.type}`;
+                const downloadControl = item.already_installed
+                    ? `<button class="btn-download" disabled style="background:var(--text-faded);cursor:default;" title="${escapeHtml(alreadyDownloadedHint)}">
+                            <svg class="icon"><use href="#icon-check-circle"/></svg>
+                            <span>${item.type === 'skill' ? 'Installed' : 'Downloaded'}</span>
+                       </button>`
+                    : `<button class="btn-download">
+                            <svg class="icon"><use href="#icon-download"/></svg>
+                            <span>Download</span>
+                       </button>`;
                 card.innerHTML = `
                     <div style="display:flex; gap:12px;">
                         <div class="icon-badge sm ${typeTint}" style="margin-top:2px;"><svg class="icon"><use href="#${typeIcon}"/></svg></div>
@@ -2285,20 +2512,72 @@
                     </div>
                     <div class="online-card-footer">
                         <span style="display:flex; align-items:center; gap:5px;"><svg class="icon" style="color:var(--amber);"><use href="#icon-star"/></svg> ${Number(item.stars || 0).toLocaleString()} | ${escapeHtml(item.owner)}</span>
-                        <button class="btn-download">
-                            <svg class="icon"><use href="#icon-download"/></svg>
-                            <span>Download</span>
-                        </button>
+                        ${downloadControl}
                     </div>
                 `;
-                card.querySelector('.btn-download').addEventListener('click', (ev) => downloadPackage(idx, ev.currentTarget));
+                if (!item.already_installed) {
+                    card.querySelector('.btn-download').addEventListener('click', (ev) => downloadPackage(item.full_name, ev.currentTarget));
+                }
                 grid.appendChild(card);
             });
         }
 
-        async function downloadPackage(idx, btn) {
+        // Bottom-right toast, stacked (not a single reused element - each
+        // call appends its own card so a retry/second download can show its
+        // own result without clobbering one still on screen). Built with
+        // createElement/textContent rather than an innerHTML template so
+        // GitHub-sourced strings (package name, error text) never need
+        // manual escaping to land safely in the DOM.
+        function showToast({ title, subtitle, errorDetail, actions = [] }) {
+            const stack = document.getElementById('toast-stack');
+            const card = document.createElement('div');
+            card.className = 'toast-card';
+            if (errorDetail) card.title = errorDetail;
+
+            const actionsCol = document.createElement('div');
+            actionsCol.className = 'toast-actions';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'toast-close';
+            closeBtn.setAttribute('aria-label', 'Close');
+            closeBtn.title = 'Close';
+            closeBtn.textContent = '✕';
+            closeBtn.addEventListener('click', () => card.remove());
+            actionsCol.appendChild(closeBtn);
+
+            for (const action of actions) {
+                const actionBtn = document.createElement('button');
+                actionBtn.className = 'toast-btn ' + (action.variant === 'outline' ? 'toast-btn-outline' : 'toast-btn-primary');
+                actionBtn.textContent = action.label;
+                actionBtn.addEventListener('click', () => {
+                    action.onClick && action.onClick();
+                    if (action.closesToast !== false) card.remove();
+                });
+                actionsCol.appendChild(actionBtn);
+            }
+
+            const body = document.createElement('div');
+            body.className = 'toast-body';
+            const titleEl = document.createElement('div');
+            titleEl.className = 'toast-title';
+            titleEl.textContent = title;
+            body.appendChild(titleEl);
+            if (subtitle) {
+                const subtitleEl = document.createElement('div');
+                subtitleEl.className = 'toast-subtitle';
+                subtitleEl.textContent = subtitle;
+                body.appendChild(subtitleEl);
+            }
+
+            card.appendChild(actionsCol);
+            card.appendChild(body);
+            stack.appendChild(card);
+            return card;
+        }
+
+        async function downloadPackage(fullName, btn) {
             if (!window.pywebview) return;
-            const item = lastOnlineResults[idx];
+            const item = lastOnlineResults.find(r => r.full_name === fullName);
             if (!item) return;
             btn.disabled = true;
             btn.innerText = 'Downloading... ⏳';
@@ -2313,52 +2592,104 @@
                 });
 
                 if (res && res.success) {
-                    btn.innerText = '✔ Installed';
-                    btn.style.background = '#ea580c';
+                    // Only a real skill gets copied somewhere an AI tool will
+                    // actually read on its own; MCP servers and plugins land
+                    // in a Downloads/<type>/ folder for manual review/setup
+                    // instead (see download_online_package) - say so plainly
+                    // rather than implying they're ready to use like a skill is.
+                    const kind = res.package_type || item.type;
+                    item.already_installed = true;
+                    const openFolderAction = (res.installed && res.installed.length) ? {
+                        label: 'Open Folder', variant: 'outline', closesToast: false,
+                        onClick: async () => {
+                            const openRes = await window.pywebview.api.open_download_folder(kind, res.installed[0]);
+                            if (!openRes.success) showToast({ title: 'Could not open the folder', subtitle: openRes.error });
+                        },
+                    } : null;
+                    const doneAction = { label: 'Great, Done!' };
 
                     if (res.suspicious_findings && res.suspicious_findings.length > 0) {
                         // Best-effort tripwire hit something - this is not a
                         // block, just make sure it's actually seen instead of
                         // sitting quietly inside the logs array.
-                        document.getElementById('modal-title').innerText = '⚠️ Downloaded — but worth a look first';
-                        document.getElementById('modal-msg').innerText =
-                            `[${item.name}] was downloaded, but a quick scan flagged ${res.suspicious_findings.length} pattern(s) worth reviewing before you install it into an AI tool:\n\n` +
-                            res.suspicious_findings.map(f => '• ' + f).join('\n') +
-                            `\n\nThis is a best-effort check, not a guarantee — open the files on GitHub (${item.full_name}) and decide for yourself.`;
+                        btn.innerText = '⚠️ Downloaded';
+                        btn.style.background = '#ea580c';
+                        showToast({
+                            title: '⚠️ Downloaded — worth a look first',
+                            subtitle: `${item.name}: scan flagged ${res.suspicious_findings.length} pattern(s). Review on GitHub before trusting it.`,
+                            actions: [openFolderAction, doneAction].filter(Boolean),
+                        });
+                    } else if (kind === 'skill') {
+                        btn.innerText = '✔ Installed';
+                        btn.style.background = '#ea580c';
+                        showToast({
+                            title: 'Download complete.',
+                            subtitle: item.name,
+                            actions: [openFolderAction, doneAction].filter(Boolean),
+                        });
+                    } else if (kind === 'mcp') {
+                        btn.innerText = '✔ Downloaded';
+                        btn.style.background = '#ea580c';
+                        showToast({
+                            title: 'MCP server downloaded.',
+                            subtitle: `${item.name} — needs manual setup in your AI tool`,
+                            actions: [openFolderAction, doneAction].filter(Boolean),
+                        });
                     } else {
-                        document.getElementById('modal-title').innerText = 'Package Downloaded & Installed!';
-                        document.getElementById('modal-msg').innerText = `[${item.name}] has been cloned, indexed, and integrated into your local StrLink library.`;
+                        btn.innerText = '✔ Downloaded';
+                        btn.style.background = '#ea580c';
+                        showToast({
+                            title: 'Plugin downloaded.',
+                            subtitle: `${item.name} — copy it into your AI tool manually`,
+                            actions: [openFolderAction, doneAction].filter(Boolean),
+                        });
                     }
-                    if (res.installed && res.installed.length) {
-                        lastInstalledFolderTarget = res.installed[0];
-                        document.getElementById('modal-open-folder-btn').hidden = false;
-                    }
-                    document.getElementById('modal-success').style.display = 'flex';
 
                     const sysInfo = await window.pywebview.api.get_system_info();
                     document.getElementById('lib-count').innerText = sysInfo.skills_library_count.toLocaleString();
                     categoriesData = await window.pywebview.api.get_categories_manifest();
                     renderCategories();
+                    const activeType = document.querySelector('input[name="disc_type"]:checked').value;
+                    refreshOnlineDisplay(activeType, lastOnlineResults.length, false);
                 } else if (res && res.status === 'quarantined') {
-                    // Not a bug: either every skill in the repo was already
-                    // installed, or the repo genuinely isn't a skill package
-                    // (no SKILL.md anywhere in it) - GitHub's search matches
-                    // on keywords, not on "is this actually a skill", so
-                    // browsing by category surfaces plenty of these. Say so
-                    // plainly instead of presenting it the same as a real
-                    // failure, and don't invite a retry that can't help.
-                    btn.innerText = res.error.includes('already in your library') ? 'Already installed' : 'Not a skill package';
+                    // Not a bug: either it's already downloaded, the scan
+                    // flagged something worth a manual look, or (skills only)
+                    // the repo genuinely isn't a skill package (no SKILL.md
+                    // anywhere in it) - GitHub's search matches on keywords,
+                    // not on "is this actually a skill", so browsing by
+                    // category surfaces plenty of these. Say so plainly
+                    // instead of presenting it the same as a real failure,
+                    // and don't invite a retry that can't help.
+                    const alreadyInstalled = res.error.includes('already in your library');
+                    const flaggedForReview = res.error.includes('blocked for manual review');
+                    btn.innerText = alreadyInstalled ? 'Already downloaded' : flaggedForReview ? 'Flagged for review' : 'Not a skill package';
                     btn.disabled = true;
                     btn.style.background = 'var(--text-faded)';
                     btn.title = res.error;
+                    if (alreadyInstalled) {
+                        item.already_installed = true;
+                        const activeType = document.querySelector('input[name="disc_type"]:checked').value;
+                        refreshOnlineDisplay(activeType, lastOnlineResults.length, false);
+                    }
                 } else {
-                    alert('Download failed: ' + (res.error || 'Unknown error'));
                     btn.disabled = false;
                     btn.innerText = 'Retry';
+                    showToast({
+                        title: 'Download failed',
+                        subtitle: item.name,
+                        errorDetail: res && res.error,
+                        actions: [{ label: 'Retry', onClick: () => downloadPackage(fullName, btn) }],
+                    });
                 }
             } catch (e) {
-                alert('Error: ' + e);
                 btn.disabled = false;
+                btn.innerText = 'Retry';
+                showToast({
+                    title: 'Download failed',
+                    subtitle: item.name,
+                    errorDetail: String(e),
+                    actions: [{ label: 'Retry', onClick: () => downloadPackage(fullName, btn) }],
+                });
             }
         }
 
@@ -2407,6 +2738,10 @@
                     </div>
                     ${app.custom ? `
                     <div class="app-stats">
+                        <div>
+                            <div class="app-stat-val">${app.skills_count}</div>
+                            <div class="app-stat-label">${t('stat-skills')}</div>
+                        </div>
                         <div>
                             <div class="app-stat-val">${app.sessions_count}</div>
                             <div class="app-stat-label">${t('stat-files')}</div>
@@ -2462,7 +2797,9 @@
             }
             const name = prompt(t('custom-tool-name-prompt'), '');
             if (!name || !name.trim()) return;
-            const res = await window.pywebview.api.add_custom_tool(name.trim(), response.path);
+            const skillsSubfolder = prompt(t('custom-tool-skills-prompt'), 'skills');
+            if (skillsSubfolder === null) return;
+            const res = await window.pywebview.api.add_custom_tool(name.trim(), response.path, skillsSubfolder.trim());
             if (!res.success) return alert(res.error);
             appsData = await window.pywebview.api.get_apps_status();
             renderAppsGrid();
@@ -2694,14 +3031,6 @@
         function closeModal() {
             document.getElementById('modal-success').style.display = 'none';
             document.getElementById('progress-container').style.display = 'none';
-            document.getElementById('modal-open-folder-btn').hidden = true;
-        }
-
-        let lastInstalledFolderTarget = '';
-        async function openLastInstalledFolder() {
-            if (!lastInstalledFolderTarget || !window.pywebview) return;
-            const res = await window.pywebview.api.open_skill_folder(lastInstalledFolderTarget);
-            if (!res.success) alert(res.error);
         }
 
         // Wider AI-tool discovery: explicit allow/deny gate before StrLink

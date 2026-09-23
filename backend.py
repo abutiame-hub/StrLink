@@ -306,24 +306,30 @@ class Api:
         }
 
         # User-added tools StrLink has no built-in detection rules for.
-        # sessions_count is repurposed as a plain file count here - "skills"
-        # and "MCP servers" aren't concepts StrLink can identify inside a
+        # sessions_count is repurposed as a plain file count here - "MCP
+        # servers"/"plugins" aren't concepts StrLink can identify inside a
         # folder it knows nothing about, so those stay at their honest zero
-        # rather than guessing.
+        # rather than guessing. Skills are the one exception: the user names
+        # a subfolder (default "skills") when adding the tool, so StrLink can
+        # list what's already there the same way it does for a recognized
+        # tool - and Library deployment (see backup_engine._plan) can target it.
         for tool in self._read_custom_tools():
             root = tool["root"]
             file_count = 0
             if os.path.isdir(root):
                 for _, _, files in os.walk(root):
                     file_count += len(files)
+            skills_subfolder = tool.get("skills_subfolder") or "skills"
+            skills_dir = os.path.join(root, *skills_subfolder.replace("\\", "/").split("/"))
+            installed_skills = [d for d in os.listdir(skills_dir) if os.path.isdir(os.path.join(skills_dir, d))] if os.path.isdir(skills_dir) else []
             apps[tool["id"]] = {
                 "name": tool["name"],
                 "id": tool["id"],
                 "installed": os.path.isdir(root),
                 "base_dir": root,
-                "skills_dir": "",
-                "skills_count": 0,
-                "installed_skills": [],
+                "skills_dir": skills_dir if os.path.isdir(skills_dir) else "",
+                "skills_count": len(installed_skills),
+                "installed_skills": installed_skills,
                 "mcp_servers": [],
                 "sessions_count": file_count,
                 "has_settings": False,
@@ -387,7 +393,7 @@ class Api:
         except Exception as error:
             return {"success": False, "error": str(error)}
 
-    def add_custom_tool(self, name, path):
+    def add_custom_tool(self, name, path, skills_subfolder=None):
         try:
             name = (name or "").strip()
             if not name:
@@ -396,6 +402,10 @@ class Api:
                 raise ValueError("Name is too long")
             if not path or not os.path.isdir(path):
                 raise ValueError("Select an existing folder")
+            skills_subfolder = (skills_subfolder or "skills").strip().strip("/\\")
+            subfolder_parts = Path(skills_subfolder).parts
+            if not skills_subfolder or ".." in subfolder_parts or Path(skills_subfolder).is_absolute() or ":" in skills_subfolder:
+                raise ValueError('Skills folder must be a simple relative path, e.g. "skills"')
             resolved = Path(path).resolve()
             if resolved == Path(resolved.anchor) or resolved == Path(self.user_profile).resolve():
                 raise ValueError("Select the tool's own data folder, not a drive root or your whole user folder")
@@ -417,7 +427,7 @@ class Api:
             while tool_id in existing_ids:
                 suffix += 1
                 tool_id = f"{base_id}-{suffix}"
-            tools.append({"id": tool_id, "name": name, "root": str(resolved)})
+            tools.append({"id": tool_id, "name": name, "root": str(resolved), "skills_subfolder": skills_subfolder})
             self._update_preferences(custom_tools=tools)
             return {"success": True, "tools": tools}
         except Exception as error:
@@ -494,6 +504,8 @@ class Api:
                 "claude", "chatgpt", "openai", "cursor", "windsurf", "github copilot",
                 "microsoft copilot", "ollama", "lm studio", "perplexity", "anythingllm",
                 "gpt4all", "msty", "deepseek", "gemini", "continue.dev", "jetbrains ai",
+                "qwen", "opencode", "aider", "codeium", "cline", "tabnine",
+                "sourcegraph", "cody", "amazon q", "zed",
             ]
             candidates = self._enumerate_uninstall_entries() + self._scan_common_install_folders()
             matches = {}
@@ -591,6 +603,23 @@ class Api:
                         pkg_type = "plugin"
                     else:
                         pkg_type = "skill"
+                    repo_name = item.get("name") or ""
+                    # download_online_package() installs a single-skill repo
+                    # under Skills_Library/<repo name>, and an mcp/plugin repo
+                    # under Downloads/<mcp|plugin>/<repo name> (see its
+                    # install_name/target logic) - checking that same path is
+                    # the exact same "already downloaded" test it already
+                    # makes, just run before a download attempt instead of
+                    # after. A multi-skill pack's own sub-skill names aren't
+                    # known until it's actually cloned, so this can't (and
+                    # doesn't try to) detect those in advance - same
+                    # limitation the existing post-download quarantine
+                    # message has.
+                    if pkg_type == "skill":
+                        already_installed_dir = os.path.join(self.skills_library_dir, repo_name)
+                    else:
+                        already_installed_dir = os.path.join(self.backup_dir, "Downloads", pkg_type, repo_name)
+                    already_installed = bool(repo_name) and os.path.isdir(already_installed_dir)
                     results.append({
                         "name": item.get("name"),
                         "full_name": item.get("full_name"),
@@ -604,7 +633,8 @@ class Api:
                         "default_branch": item.get("default_branch") or "main",
                         "type": pkg_type,
                         "owner": item.get("owner", {}).get("login", ""),
-                        "category": category
+                        "category": category,
+                        "already_installed": already_installed
                     })
             # GitHub's Search API caps results at 1000 regardless of total_count.
             has_more = (page * per_page) < min(total_count, 1000)
@@ -723,6 +753,31 @@ class Api:
                     if candidate.is_symlink() or candidate.is_junction():
                         raise ValueError("Package contains linked files and remains quarantined")
 
+            if pkg_type in ("mcp", "plugin"):
+                # Neither has a SKILL.md-style convention, so the skill-only
+                # gate below used to reject every single MCP/plugin download
+                # with a technically-true but useless "no SKILL.md found"
+                # error - Download was never actually wired up for these two
+                # types. There's also nothing here that's safe to
+                # auto-deploy the way a skill folder is: an MCP server needs
+                # its dependencies installed and a manual entry added to the
+                # target tool's MCP config (StrLink has no way to know that
+                # command, and auto-registering an unreviewed one would mean
+                # a downloaded repo's code runs the next time that tool
+                # starts), and a plugin's expected folder layout varies by
+                # tool. Keep the whole repo as one reviewable download
+                # instead, under Downloads/<mcp|plugin>/<name> rather than
+                # Skills_Library, so it never gets mistaken for an
+                # installable skill by the Library-deploy feature.
+                holding_dir = os.path.join(self.backup_dir, "Downloads", pkg_type)
+                os.makedirs(holding_dir, exist_ok=True)
+                target = os.path.join(holding_dir, pkg_name)
+                if os.path.exists(target):
+                    return {"success": False, "status": "quarantined", "error": f"This {pkg_type} is already in your library: {target}", "logs": logs}
+                shutil.copytree(dest_dir, target)
+                logs.append(f"[✔] Downloaded {pkg_type} for review: {target}")
+                return {"success": True, "logs": logs, "suspicious_findings": suspicious_findings, "installed": [pkg_name], "skipped": [], "package_type": pkg_type}
+
             skill_dirs = self._find_skill_dirs(dest_dir)
             if not skill_dirs:
                 return {"success": False, "status": "quarantined", "error": "No SKILL.md found in the repository or its subfolders. Kept for manual review: " + dest_dir, "logs": logs}
@@ -763,7 +818,7 @@ class Api:
                 return {"success": False, "status": "quarantined", "error": "Every skill in this package was already in your library or had an invalid name. Review: " + dest_dir, "logs": logs}
 
             self._rebuild_categories_json()
-            return {"success": True, "logs": logs, "suspicious_findings": suspicious_findings, "installed": installed, "skipped": [n for n, _ in skipped]}
+            return {"success": True, "logs": logs, "suspicious_findings": suspicious_findings, "installed": installed, "skipped": [n for n, _ in skipped], "package_type": "skill"}
         except Exception as e:
             logs.append(f"[ERROR] Failed downloading package: {str(e)}")
             return {"success": False, "error": str(e), "logs": logs}
@@ -780,13 +835,18 @@ class Api:
     def get_backup_inventory(self):
         return self._engine.catalog()
 
-    def open_skill_folder(self, skill_name):
+    def open_download_folder(self, kind, name):
         try:
-            if not re.fullmatch(r"[A-Za-z0-9_.-]+", skill_name or "") or skill_name in (".", ".."):
-                raise ValueError("Invalid skill name")
-            target = Path(self.skills_library_dir) / skill_name
+            if not re.fullmatch(r"[A-Za-z0-9_.-]+", name or "") or name in (".", ".."):
+                raise ValueError("Invalid name")
+            if kind == "skill":
+                target = Path(self.skills_library_dir) / name
+            elif kind in ("mcp", "plugin"):
+                target = Path(self.backup_dir) / "Downloads" / kind / name
+            else:
+                raise ValueError("Invalid kind")
             if not target.is_dir():
-                raise ValueError("Skill folder not found: " + str(target))
+                raise ValueError("Folder not found: " + str(target))
             os.startfile(target)
             return {"success": True}
         except Exception as error:
