@@ -18,6 +18,41 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 VERSION = "2.0.0"
 
+# "Library deployment": copying a downloaded item straight into an app's own
+# data folder, keyed by snapshot_id instead of a real dated snapshot. Skills
+# were the original (and only) case; this generalizes the same mechanism to
+# plugins and MCP downloads. known_prefixes only lists apps that actually
+# have a real folder for that category - Claude/Codex/Gemini/Cursor all keep
+# skills as a folder, but MCP servers are always a single JSON config file
+# (mcp.json, .claude.json, ...) on every known app, never a folder you can
+# copy files into, so mcp_library's known_prefixes stays empty and MCP
+# deployment only ever applies to a custom tool's own, user-named subfolder.
+# This never writes into a JSON config or registers/runs anything - it is a
+# plain file copy, same as skills already are, on purpose: StrLink has no
+# safe way to guess a downloaded MCP server's run command, and auto-adding
+# an unreviewed one to a live config means it executes next time that tool
+# starts.
+LIBRARY_KINDS = {
+    "library": {
+        "category": "skills",
+        "dir_attr": "skills_library_dir",
+        "known_prefixes": {"claude": "skills", "codex": "skills", "gemini": "config/skills", "cursor": "skills"},
+        "custom_subfolder_key": "skills_subfolder",
+    },
+    "plugin_library": {
+        "category": "plugins",
+        "dir_attr": "plugins_download_dir",
+        "known_prefixes": {"claude": "plugins", "gemini": "config/plugins"},
+        "custom_subfolder_key": "plugins_subfolder",
+    },
+    "mcp_library": {
+        "category": "mcp",
+        "dir_attr": "mcp_download_dir",
+        "known_prefixes": {},
+        "custom_subfolder_key": "mcp_subfolder",
+    },
+}
+
 
 def settings_path():
     return Path(os.environ.get("LOCALAPPDATA", tempfile.gettempdir())) / "StrLink" / "preferences.json"
@@ -220,9 +255,10 @@ class BackupEngine:
         return snapshots
 
     def snapshot_items(self, snapshot_id, password=""):
-        if snapshot_id == "library":
-            library = Path(self.api.skills_library_dir)
-            return [{"id": "library:" + path.name, "app": "library", "category": "skills", "name": path.name, "exists": True, "present": False, "size": tree_size(path)} for path in sorted(library.glob("*")) if path.is_dir() and not path.is_symlink() and not path.is_junction()]
+        if snapshot_id in LIBRARY_KINDS:
+            kind = LIBRARY_KINDS[snapshot_id]
+            library = Path(getattr(self.api, kind["dir_attr"]))
+            return [{"id": snapshot_id + ":" + path.name, "app": "library", "category": kind["category"], "name": path.name, "exists": True, "present": False, "size": tree_size(path)} for path in sorted(library.glob("*")) if path.is_dir() and not path.is_symlink() and not path.is_junction()]
         _, manifest, _ = self._load(snapshot_id, password)
         items = {}
         for entry in manifest["files"]:
@@ -323,34 +359,38 @@ class BackupEngine:
     def _plan(self, options):
         chosen = set(options.get("item_ids", []))
         skipped = []
-        if options.get("snapshot_id") == "library":
+        if options.get("snapshot_id") in LIBRARY_KINDS:
+            snapshot_id = options["snapshot_id"]
+            kind = LIBRARY_KINDS[snapshot_id]
             # Resolved once up front so every relative_to() below compares
             # against the same normalized form that inside() itself returns
             # (see the matching comment in backup() for why this matters).
-            folder = Path(self.api.skills_library_dir).resolve()
+            folder = Path(getattr(self.api, kind["dir_attr"])).resolve()
             manifest, key, entries = {"encrypted": False, "salt": ""}, None, []
-            prefixes = {"claude": "skills", "codex": "skills", "gemini": "config/skills", "cursor": "skills"}
+            prefixes = dict(kind["known_prefixes"])
             for tool in self.api._read_custom_tools():
-                prefixes[tool["id"]] = tool.get("skills_subfolder") or "skills"
+                prefixes[tool["id"]] = tool.get(kind["custom_subfolder_key"]) or kind["category"]
             if not options.get("apps") or any(app not in prefixes for app in options["apps"]):
-                raise ValueError("Library deployment supports Claude Code, Codex, Gemini, Cursor and your added custom tools only")
-            # This hashes every file in every selected skill - unavoidable to
+                supported = ", ".join(sorted(prefixes)) or "your added custom tools"
+                raise ValueError(f"{kind['category'].capitalize()} deployment supports: {supported}")
+            # This hashes every file in every selected item - unavoidable to
             # safely tell create/replace/unchanged apart, but with a few
-            # thousand skills selected it's real work, not instant. Preview
+            # thousand items selected it's real work, not instant. Preview
             # and restore both call _plan() (restore re-verifies against a
             # fresh hash rather than trusting the preview's, so a file
             # changed in between is caught) - so this doubles up on a bulk
             # deploy. Report progress here so a big selection reads as
             # "working through it" instead of a stuck 0%.
             ordered = sorted(chosen)
+            id_prefix = snapshot_id + ":"
             for item_index, item_id in enumerate(ordered):
                 # No _check_cancel() here deliberately: preview() (unlike
                 # backup()/restore()) never clears self.cancel at its own
                 # start, so a stale flag left set by an earlier cancelled
                 # operation would abort an unrelated later preview instantly.
-                if not item_id.startswith("library:"):
+                if not item_id.startswith(id_prefix):
                     raise ValueError("Invalid library item")
-                name = item_id.removeprefix("library:")
+                name = item_id.removeprefix(id_prefix)
                 self.api._emit_progress(item_index + 1, len(ordered), f"Checking {item_index + 1}/{len(ordered)}: {name}")
                 try:
                     source = inside(folder, name)
@@ -364,15 +404,15 @@ class BackupEngine:
                             file_path = inside(folder, relative)
                             checksum = digest(file_path)
                             for app in options["apps"]:
-                                item_entries.append({"root": app, "app": app, "category": "skills", "relative": prefixes[app] + "/" + relative, "item_id": item_id, "item_name": name, "blob": relative, "sha256": checksum, "size": file_path.stat().st_size})
+                                item_entries.append({"root": app, "app": app, "category": kind["category"], "relative": prefixes[app] + "/" + relative, "item_id": item_id, "item_name": name, "blob": relative, "sha256": checksum, "size": file_path.stat().st_size})
                     entries.extend(item_entries)
                 except (OSError, ValueError) as error:
-                    # One skill with a leftover empty/broken download, a
+                    # One item with a leftover empty/broken download, a
                     # Windows-invalid filename, or a locked file used to
-                    # abort planning for every other selected skill along
+                    # abort planning for every other selected item along
                     # with it. Skip just this one and keep going - the
                     # caller still sees it (in "skipped"), it's just not
-                    # fatal to the other 1,893 anymore.
+                    # fatal to the rest of a large selection anymore.
                     skipped.append({"item_id": item_id, "name": name, "reason": str(error)})
                     chosen.discard(item_id)
         else:

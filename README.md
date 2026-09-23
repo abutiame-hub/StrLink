@@ -52,9 +52,9 @@ not an application-wide transactional snapshot: close apps before backing up
 if cross-file consistency is required. Linked files/folders are refused or
 reported as skipped; they are not followed outside the source tree.
 
-Restore requires a selected dated snapshot or the legacy Skills Library,
-explicit selection, an unchanged preview, and confirmation that target apps
-are closed. Existing files are skipped by default. Replacement preserves
+Restore requires a selected dated snapshot or one of the Skills/Plugin/MCP
+Libraries, explicit selection, an unchanged preview, and confirmation that
+target apps are closed. Existing files are skipped by default. Replacement preserves
 verified originals in `Recovery` first. Restore errors trigger automatic
 rollback. Recovery data uses the snapshot's encryption settings. Manual rollback
 refuses to overwrite files changed since restoration. It does not remove empty
@@ -62,26 +62,44 @@ directories created during a failed restore. Keep applications closed throughout
 restore/rollback. Databases with WAL files are refused for restore.
 
 Preferences are stored in `%LOCALAPPDATA%\StrLink\preferences.json` and logs in
-`%LOCALAPPDATA%\StrLink\logs`. The saved destination takes precedence. Otherwise
-the portable library beside the EXE is used, followed by an existing
-`D:\AI_BACKUP` (the original development machine's layout; harmless on a
-machine without one), then `~/StrLink_Backup`.
+`%LOCALAPPDATA%\StrLink\logs`. For snapshots/recovery/templates, the saved
+destination takes precedence; otherwise the portable library beside the EXE is
+used, followed by an existing `D:\AI_BACKUP` (the original development
+machine's layout; harmless on a machine without one), then `~/StrLink_Backup`.
 Changing the destination does not migrate old snapshots.
+
+Skill/Plugin/MCP downloads are a separate case: they always live under
+`<Desktop>\StrLink\Downloads\{Skills,Plugins,MCP}`, resolved from the real
+per-user Desktop folder (via the registry, so it still finds the right place
+when the Desktop is OneDrive-redirected) - independent of the snapshot
+destination above, so it stays in one predictable spot regardless of where
+backups are stored or whether the app is run portably. On first startup after
+upgrading from an older version that kept these under the backup destination
+(`Skills_Library`, `Downloads/mcp`, `Downloads/plugin`), StrLink moves
+anything found there to the new Desktop location automatically; a name that
+already exists at the destination is left at the old location rather than
+overwritten, for manual review.
 
 ## Custom tools
 
 Tools StrLink has no built-in detection for can be added from "Add Custom
-Tool" next to the AI-tool cards: point it at the tool's own data folder and
-give it a name. StrLink cannot tell what's inside a folder it doesn't
-recognize, so it does not sort a custom tool's contents into
-skills/sessions/settings/etc. - every item directly inside the chosen folder
-becomes its own selectable entry instead (a subfolder or a loose file alike),
-so picking exactly which parts to back up (e.g. an `mcp/` or `plugins/`
-folder while leaving a `skills/` folder unselected) works the same way
-selecting individual skills does for a recognized tool. Removing a custom
-tool only forgets it in StrLink; nothing on disk is touched.
+Tool" next to the AI-tool cards: point it at the tool's own data folder, give
+it a name, and confirm (or correct) three subfolder names it guesses by
+scanning that folder for skills/plugins/mcp-like names - where it keeps
+skills, plugins, and MCP servers, each relative to the folder just picked.
+The guess is only ever a starting value the user sees and can change; there's
+no real convention to rely on for a tool StrLink has never heard of.
 
-## Scope and limitations
+For backup/restore, StrLink still cannot tell what's inside a folder it
+doesn't otherwise recognize, so it does not sort a custom tool's contents
+into skills/sessions/settings/etc. beyond those three - every item directly
+inside the chosen folder becomes its own selectable entry, so picking exactly
+which parts to back up works the same way selecting individual skills does
+for a recognized tool. The three named subfolders are also what the Skills/
+Plugin/MCP Libraries deploy into for that tool (see below) - a plain file
+copy, same as backup restore already is; StrLink never edits that tool's own
+settings or runs anything on its behalf. Removing a custom tool only forgets
+it in StrLink; nothing on disk is touched.
 
 ## Project handoff
 
@@ -132,10 +150,10 @@ claimed token counts.
   bound to a device/account may require sign-in again after restoration.
 - Cloud-only ChatGPT/Claude chats, OS credential stores and unlisted application
   data paths are not automatically captured. Browser exports remain separate.
-- Legacy library restore installs only selected skills; it does not apply templates.
-- Cross-app direct transfer is disabled: incompatible settings must not be silently
-  merged or overwritten. Per-app snapshot restore and legacy library deployment
-  remain available.
+- Library restore does not apply templates. There is no direct cross-app
+  transfer mode: incompatible settings must not be silently merged or
+  overwritten, so only per-app snapshot restore and Skills/Plugin/MCP Library
+  deployment are offered.
 - Online packages are downloaded into `Quarantine` first. Suspicious packages and
   name conflicts remain quarantined. Transient clone failures (DNS, timeout,
   dropped connection) are retried up to 3 times before being reported; a repo
@@ -145,12 +163,17 @@ claimed token counts.
   subfolders (searched up to 3 levels deep, so multi-skill packs install as
   separate library entries); a repository with none stays quarantined instead of
   installing. MCP server and plugin downloads have no such marker to check for,
-  so the whole repository is copied as-is into `Downloads/mcp/<name>` or
-  `Downloads/plugin/<name>` for manual review instead of `Skills_Library` -
-  neither is deployed into an AI tool automatically. An MCP server still needs
-  its dependencies installed and a manual entry added to the target tool's MCP
-  configuration; StrLink does not run or register it. A plugin's expected folder
-  layout varies by tool, so it must be placed manually too.
+  so the whole repository is copied as-is into the MCP or Plugin Library
+  (`<Desktop>\StrLink\Downloads\MCP` / `\Plugins`) instead. Downloading is not
+  the same as deploying: a plugin only reaches an AI tool once explicitly
+  restored from the Plugin Library (known apps with a real plugins folder, or
+  a custom tool's own configured subfolder), and an MCP server only ever
+  reaches a custom tool's own configured MCP subfolder the same way - no known
+  app has a folder-based MCP convention, only a single JSON config file, so
+  MCP Library deployment isn't offered for them. Either way this is always a
+  plain file copy: it still needs its dependencies installed and a manual
+  entry added to the target tool's own MCP configuration; StrLink never edits
+  that configuration or runs anything on the tool's behalf.
 - Portable export uses a new folder and excludes Snapshots, Recovery, credentials
   and conversations. Manually review skills/templates for embedded private data
   before sharing; the software does not promise that these files are secret-free.

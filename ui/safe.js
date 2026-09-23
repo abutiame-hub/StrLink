@@ -2,7 +2,7 @@ let safeItems = [];
 let safeSelection = new Set();
 let safeBusy = false;
 let safeLoadRevision = 0;
-const safeCategoryNames = {skills: 'المهارات', sessions: 'المحادثات وبيانات الجلسات', settings: 'الإعدادات الفعلية', connections: 'الاتصالات وبيانات الدخول', plugins: 'الإضافات', data: 'بيانات الأداة المخصّصة'};
+const safeCategoryNames = {skills: 'المهارات', sessions: 'المحادثات وبيانات الجلسات', settings: 'الإعدادات الفعلية', connections: 'الاتصالات وبيانات الدخول', plugins: 'الإضافات', mcp: 'خوادم MCP المُنزّلة', data: 'بيانات الأداة المخصّصة'};
 
 function safeApi() {
     if (!window.pywebview || !window.pywebview.api) throw new Error('واجهة الاتصال غير جاهزة؛ أعد فتح البرنامج.');
@@ -34,17 +34,7 @@ setMode = function(mode) {
     for (const identifier of ['accordion-skills', 'accordion-mcp', 'accordion-sessions', 'accordion-templates']) {
         document.getElementById(identifier).hidden = true;
     }
-    if (mode === 'transfer') {
-        // Direct app-to-app overwrite stays disabled (MCP/config formats
-        // aren't interchangeable between tools, and it skips the preview/
-        // undo safety net) - but leaving the button merely disabled was a
-        // dead end with no way forward. It now does the one thing that
-        // actually is safe: jump to the preview-based restore flow.
-        document.getElementById('main-action-btn').disabled = false;
-        document.getElementById('main-action-btn').textContent = t('transfer-use-restore-btn');
-    } else {
-        document.getElementById('main-action-btn').disabled = false;
-    }
+    document.getElementById('main-action-btn').disabled = false;
     safeSelection.clear();
     renderAppsGrid();
     if (active) refreshSafeWorkspace();
@@ -118,6 +108,12 @@ async function refreshSafeWorkspace() {
         const libraryOption = new Option(t('snapshot-library-option'), 'library');
         libraryOption.dataset.encrypted = '0';
         selector.add(libraryOption);
+        const pluginLibraryOption = new Option(t('snapshot-plugin-library-option'), 'plugin_library');
+        pluginLibraryOption.dataset.encrypted = '0';
+        selector.add(pluginLibraryOption);
+        const mcpLibraryOption = new Option(t('snapshot-mcp-library-option'), 'mcp_library');
+        mcpLibraryOption.dataset.encrypted = '0';
+        selector.add(mcpLibraryOption);
         if (Array.from(selector.options).some(option => option.value === previous)) selector.value = previous;
         const recovery = document.getElementById('recovery-select');
         recovery.replaceChildren();
@@ -170,7 +166,7 @@ function visibleSafeItems() {
 
 // One icon per inventory category, matching the icon language used
 // everywhere else in the app (see the sprite in index.html).
-const SAFE_CATEGORY_ICONS = { skills: 'icon-library', sessions: 'icon-chat', settings: 'icon-settings', connections: 'icon-mcp', plugins: 'icon-plugin', data: 'icon-folder' };
+const SAFE_CATEGORY_ICONS = { skills: 'icon-library', sessions: 'icon-chat', settings: 'icon-settings', connections: 'icon-mcp', plugins: 'icon-plugin', mcp: 'icon-mcp', data: 'icon-folder' };
 
 // Skills, MCP/connections, plugins, settings, sessions - in the order
 // someone scanning the list would look for them, not the incidental order
@@ -178,7 +174,7 @@ const SAFE_CATEGORY_ICONS = { skills: 'icon-library', sessions: 'icon-chat', set
 // a custom tool's undifferentiated contents - goes last since it's a
 // catch-all, not a real category. Anything with no entry here still
 // renders, just after every named category.
-const SAFE_CATEGORY_ORDER = ['skills', 'connections', 'plugins', 'settings', 'sessions', 'data'];
+const SAFE_CATEGORY_ORDER = ['skills', 'connections', 'plugins', 'mcp', 'settings', 'sessions', 'data'];
 
 function formatBytes(bytes) {
     if (!bytes) return '—';
@@ -331,7 +327,6 @@ function setSafeBusy(busy) {
 
 executeMainAction = async function() {
     if (safeBusy) return;
-    if (currentMode === 'transfer') { setMode('restore'); return; }
     if (!['backup', 'restore'].includes(currentMode)) return;
     if (!selectedAppIds.length || !safeSelection.size) return alert('اختَر برنامجًا وعنصرًا واحدًا على الأقل.');
     const options = {

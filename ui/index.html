@@ -1279,7 +1279,7 @@
             <div class="brand-icon"><div class="brand-icon-fill"></div></div>
             <div class="brand-title">
                 <h1>Str<span class="highlight">Link</span> | <span id="txt-app-subtitle-short">AI Skills & Tools Manager</span></h1>
-                <p id="txt-app-tagline">Universal Sync, Transfer, Backup & Online Discovery Hub</p>
+                <p id="txt-app-tagline">Backup, Restore & Online Discovery Hub</p>
             </div>
         </div>
         <div class="header-meta">
@@ -1332,14 +1332,6 @@
             </div>
             <span class="mode-tab-chevron"><svg class="icon"><use href="#icon-chevron-right"/></svg></span>
         </div>
-        <div class="mode-tab" id="tab-transfer" onclick="setMode('transfer')">
-            <div class="icon-badge badge-cyan"><svg class="icon"><use href="#icon-sync"/></svg></div>
-            <div class="mode-info">
-                <h3 id="txt-mode-transfer-title">Cross-App Sync</h3>
-                <p id="txt-mode-transfer-desc">Compare & restore safely between AI tools</p>
-            </div>
-            <span class="mode-tab-chevron"><svg class="icon"><use href="#icon-chevron-right"/></svg></span>
-        </div>
         <div class="mode-tab hub" id="tab-online" onclick="setMode('online')">
             <div class="icon-badge badge-cyan"><svg class="icon"><use href="#icon-globe"/></svg></div>
             <div class="mode-info">
@@ -1366,9 +1358,9 @@
             <div class="online-hub-box" style="max-width: 640px; margin: 0 auto; text-align: center;">
                 <div class="brand-icon" style="width:64px; height:64px; margin: 0 auto 10px;"><div class="brand-icon-fill"></div></div>
                 <h2 style="font-size: 22px; margin-bottom: 6px;">Str<span class="highlight" style="color:#38bdf8;">Link</span></h2>
-                <p id="txt-about-tagline" style="color: var(--text-muted); margin-bottom: 18px;">AI Skills & Tools Manager — Universal Sync, Transfer, Backup & Online Discovery Hub</p>
+                <p id="txt-about-tagline" style="color: var(--text-muted); margin-bottom: 18px;">AI Skills & Tools Manager — Backup, Restore & Online Discovery Hub</p>
 
-                <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-bottom:20px;">
+                <div style="display:grid; grid-template-columns: repeat(2,1fr); gap:10px; margin-bottom:20px;">
                     <div class="app-stats" style="margin-top:0;">
                         <div class="app-stat-val">2.0.0</div>
                         <div class="app-stat-label" id="txt-about-version">Version</div>
@@ -1376,10 +1368,6 @@
                     <div class="app-stats" style="margin-top:0;">
                         <div class="app-stat-val">Python 3.14</div>
                         <div class="app-stat-label" id="txt-about-stack">Built with</div>
-                    </div>
-                    <div class="app-stats" style="margin-top:0;">
-                        <div class="app-stat-val" id="lib-count-about">-</div>
-                        <div class="app-stat-label" id="txt-about-library">Skills in Library</div>
                     </div>
                 </div>
 
@@ -1391,6 +1379,10 @@
 
                 <div id="about-developer-block" style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border); font-size:12px; color:var(--text-faded); display:flex; flex-direction:column; gap:8px; align-items:center;">
                     <div><span id="txt-developed-by">Developed by</span> <strong style="color:var(--text-main); text-transform:uppercase; letter-spacing:0.5px;">TYAMEELKHOLY</strong></div>
+                    <div style="color:var(--text-main);">Abutiame</div>
+                    <div style="display:flex; gap:18px; flex-wrap:wrap; justify-content:center;">
+                        <a href="https://github.com/abutiame-hub" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:none;">🔗 github.com/abutiame-hub</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1509,29 +1501,6 @@
                         </div>
                     </div>
 
-                </div>
-            </div>
-        </div>
-
-        <!-- Transfer Mode Header -->
-        <div id="transfer-section" style="display: none;">
-            <div class="transfer-box">
-                <div class="transfer-select">
-                    <label id="txt-source-tool">Source AI Tool:</label>
-                    <select id="transfer-src">
-                        <option value="gemini">Gemini / Antigravity</option>
-                        <option value="claude">Claude Code</option>
-                        <option value="codex">ChatGPT / Codex</option>
-                    </select>
-                </div>
-                <div class="transfer-arrow">⇄</div>
-                <div class="transfer-select">
-                    <label id="txt-target-tool">Target AI Tool:</label>
-                    <select id="transfer-dst">
-                        <option value="claude">Claude Code</option>
-                        <option value="gemini">Gemini / Antigravity</option>
-                        <option value="codex">ChatGPT / Codex</option>
-                    </select>
                 </div>
             </div>
         </div>
@@ -1834,17 +1803,18 @@
         const TRANSLATIONS = {
             en: {
                 'app-subtitle-short': 'AI Skills & Tools Manager',
-                'app-tagline': 'Universal Sync, Transfer, Backup & Online Discovery Hub',
+                'app-tagline': 'Backup, Restore & Online Discovery Hub',
                 'local-library': 'Local Library:',
                 'skills-word': 'skills',
                 'computer': 'Computer:',
                 'mode-restore-title': 'Install & Restore', 'mode-restore-desc': 'Deploy skills & clean templates',
                 'mode-backup-title': 'Backup Snapshot', 'mode-backup-desc': 'Pull skills, chats & configs',
                 'snapshot-library-option': 'Skills Library — skills only, no MCP/plugins/chats/settings',
-                'mode-transfer-title': 'Cross-App Sync', 'mode-transfer-desc': 'Compare & restore safely between AI tools',
+                'snapshot-plugin-library-option': 'Plugin Library — downloaded plugins only',
+                'snapshot-mcp-library-option': 'MCP Library — downloaded MCP servers, copied as files only (no auto setup)',
                 'mode-online-title': 'Discovery Store', 'mode-online-desc': 'Find & download online skills / MCPs',
                 'mode-about-title': 'ℹ️ About',
-                'about-tagline': 'AI Skills & Tools Manager — Universal Sync, Transfer, Backup & Online Discovery Hub',
+                'about-tagline': 'AI Skills & Tools Manager — Backup, Restore & Online Discovery Hub',
                 'about-version': 'Version', 'about-stack': 'Built with', 'about-library': 'Skills in Library',
                 'about-body-1': 'StrLink backs up, restores, and syncs skills and MCP connections across local, CLI-installed AI tools (Claude Code, Gemini/Antigravity, Codex, Cursor).',
                 'about-body-2': 'Skills_Library and Templates never contain passwords, tokens, or private chats — those stay isolated under Personal_Data on this PC.',
@@ -1882,10 +1852,9 @@
                 'modal-done-btn': 'Great, Done!',
                 'modal-done-btn-2': 'Great, Done!',
                 'installed-badge': '✔ Installed', 'missing-badge': 'Not Found',
-                'stat-skills': 'Skills', 'stat-mcp': 'MCP', 'stat-chats': 'Chats',
+                'stat-skills': 'Skills', 'stat-mcp': 'MCP', 'stat-chats': 'Chats', 'stat-plugins': 'Plugins',
                 'action-restore': 'Deploy Selected Skills via StrLink 📤',
                 'action-backup': 'Run Backup to Master Library 📥',
-                'action-transfer': 'Execute Cross-App Sync 🔄',
                 'action-default': 'Run Action in StrLink 🚀',
                 'windsurf-note': 'MCP detection only — skills backup/sync not wired up for this tool yet',
                 'scan-more-btn': '🔍 Scan this PC for more AI tools',
@@ -1965,7 +1934,6 @@
                 'tg-indexed': 'Indexed files', 'tg-indexed-size': 'Indexed size', 'tg-ignored-size': 'Excluded by ignore rules',
                 'tg-ignored-dirs': 'Largest excluded folders', 'tg-top-files': 'Largest indexed files',
                 'handoff-notes-placeholder': "Your summary is the source of truth for what's actually complete; a tool call appearing in the log doesn't prove it succeeded.",
-                'transfer-use-restore-btn': 'Direct sync is disabled for safety - use preview-based restore →',
                 'tg-source-tool-label': 'AI tool this project uses',
                 'discovery-download-dest': 'Downloads are saved into:',
                 'discovery-change-dest': 'Change',
@@ -1974,21 +1942,24 @@
                 'remove-custom-tool': 'Remove',
                 'custom-tool-name-prompt': "This tool's name (shown on its card):",
                 'custom-tool-skills-prompt': "Folder where this tool keeps its skills, relative to the folder you just picked (leave as \"skills\" if unsure). Used to show what's already there and to install skills from your Library into it.",
+                'custom-tool-plugins-prompt': "Folder where this tool keeps its plugins, relative to the folder you just picked. Used the same way as skills, for the Plugin Library.",
+                'custom-tool-mcp-prompt': "Folder where this tool keeps MCP servers, relative to the folder you just picked. StrLink only ever copies files here - it never edits this tool's settings or runs anything.",
                 'custom-tool-remove-confirm': 'Stop tracking this custom tool? Nothing on disk is deleted.',
             },
             ar: {
                 'app-subtitle-short': 'مدير أدوات ومهارات الذكاء الاصطناعي',
-                'app-tagline': 'مزامنة شاملة، نقل، نسخ احتياطي، واكتشاف أدوات جديدة عبر الإنترنت',
+                'app-tagline': 'نسخ احتياطي واسترجاع واكتشاف أدوات جديدة عبر الإنترنت',
                 'local-library': 'المكتبة المحلية:',
                 'skills-word': 'مهارة',
                 'computer': 'الجهاز:',
                 'mode-restore-title': 'تثبيت واسترجاع', 'mode-restore-desc': 'نشر المهارات وتطبيق إعدادات نظيفة',
                 'mode-backup-title': 'نسخة احتياطية', 'mode-backup-desc': 'سحب المهارات والمحادثات والإعدادات',
                 'snapshot-library-option': 'مكتبة المهارات — مهارات فقط، من غير MCP أو إضافات أو محادثات أو إعدادات',
-                'mode-transfer-title': 'مزامنة بين الأدوات', 'mode-transfer-desc': 'قارن واستعد بأمان بين الأدوات',
+                'snapshot-plugin-library-option': 'مكتبة الإضافات — الإضافات المُنزّلة فقط',
+                'snapshot-mcp-library-option': 'مكتبة MCP — خوادم MCP المُنزّلة، نسخ ملفات فقط (من غير إعداد تلقائي)',
                 'mode-online-title': 'متجر الاكتشاف', 'mode-online-desc': 'ابحث وحمّل مهارات وخوادم MCP من الإنترنت',
                 'mode-about-title': 'ℹ️ حول البرنامج',
-                'about-tagline': 'مدير أدوات ومهارات الذكاء الاصطناعي — مزامنة، نقل، نسخ احتياطي، واكتشاف عبر الإنترنت',
+                'about-tagline': 'مدير أدوات ومهارات الذكاء الاصطناعي — نسخ احتياطي واسترجاع واكتشاف عبر الإنترنت',
                 'about-version': 'الإصدار', 'about-stack': 'بُني باستخدام', 'about-library': 'عدد المهارات في المكتبة',
                 'about-body-1': 'يقوم StrLink بعمل نسخة احتياطية واسترجاع ومزامنة للمهارات واتصالات MCP بين أدوات الذكاء الاصطناعي المثبتة محليًا (Claude Code وGemini/Antigravity وCodex وCursor).',
                 'about-body-2': 'مجلدا Skills_Library وTemplates لا يحتويان أبدًا على كلمات مرور أو مفاتيح أو محادثات خاصة — تلك تبقى معزولة داخل مجلد Personal_Data على هذا الجهاز فقط.',
@@ -2026,10 +1997,9 @@
                 'modal-done-btn': 'تمام، خلاص!',
                 'modal-done-btn-2': 'تمام، خلاص!',
                 'installed-badge': '✔ مثبتة', 'missing-badge': 'غير موجودة',
-                'stat-skills': 'مهارات', 'stat-mcp': 'MCP', 'stat-chats': 'محادثات',
+                'stat-skills': 'مهارات', 'stat-mcp': 'MCP', 'stat-chats': 'محادثات', 'stat-plugins': 'إضافات',
                 'action-restore': 'نشر المهارات المختارة عبر StrLink 📤',
                 'action-backup': 'تنفيذ نسخ احتياطي للمكتبة الرئيسية 📥',
-                'action-transfer': 'تنفيذ المزامنة بين الأدوات 🔄',
                 'action-default': 'تشغيل العملية في StrLink 🚀',
                 'windsurf-note': 'اكتشاف MCP فقط — مزامنة المهارات مع هذه الأداة غير مفعّلة بعد',
                 'scan-more-btn': '🔍 البحث عن المزيد من أدوات AI على هذا الجهاز',
@@ -2109,7 +2079,6 @@
                 'tg-indexed': 'الملفات المفهرسة', 'tg-indexed-size': 'حجم المفهرس', 'tg-ignored-size': 'المستبعد بقواعد التجاهل',
                 'tg-ignored-dirs': 'أكبر المجلدات المستبعدة', 'tg-top-files': 'أكبر الملفات المفهرسة',
                 'handoff-notes-placeholder': 'ملخصك هو المرجع لما اكتمل فعلًا؛ استدعاء أداة في السجل لا يثبت نجاحها.',
-                'transfer-use-restore-btn': 'النقل المباشر موقف للحماية — استخدم الاستعادة بالمعاينة ←',
                 'tg-source-tool-label': 'أداة الذكاء الاصطناعي اللي بيستخدمها المشروع',
                 'discovery-download-dest': 'التحميلات بتتحفظ في:',
                 'discovery-change-dest': 'تغيير',
@@ -2279,14 +2248,12 @@
             const tabEl = document.getElementById(`tab-${mode}`);
             if (tabEl) tabEl.classList.add('active');
 
-            const transferSec = document.getElementById('transfer-section');
             const appsSec = document.getElementById('apps-selection-section');
             const detailsSec = document.getElementById('details-section');
             const onlineSec = document.getElementById('online-hub-section');
             const aboutSec = document.getElementById('about-section');
             const actionBar = document.getElementById('action-bar');
 
-            transferSec.style.display = 'none';
             appsSec.style.display = 'none';
             detailsSec.style.display = 'none';
             onlineSec.style.display = 'none';
@@ -2298,11 +2265,6 @@
                 executeDiscoverySearch();
             } else if (mode === 'about') {
                 aboutSec.style.display = 'block';
-                document.getElementById('lib-count-about').innerText = document.getElementById('lib-count').innerText;
-            } else if (mode === 'transfer') {
-                transferSec.style.display = 'block';
-                detailsSec.style.display = 'block';
-                actionBar.style.display = 'flex';
             } else {
                 appsSec.style.display = 'block';
                 detailsSec.style.display = 'block';
@@ -2712,7 +2674,12 @@
             const icons = { 'claude': 'icon-claude', 'gemini': 'icon-gemini', 'codex': 'icon-codex', 'cursor': 'icon-cursor', 'windsurf': 'icon-windsurf', 'claude_desktop': 'icon-claude-desktop', 'continue': 'icon-continue', 'lmstudio': 'icon-lmstudio' };
             const badgeTints = { 'claude': 'badge-claude', 'gemini': 'badge-gemini', 'codex': 'badge-codex', 'cursor': 'badge-cursor', 'windsurf': 'badge-windsurf', 'claude_desktop': 'badge-claude-desktop', 'continue': 'badge-continue', 'lmstudio': 'badge-lmstudio' };
 
+            // Only ever show a tool StrLink actually found on this PC, or one
+            // the user explicitly added - a grid full of grayed-out "Not
+            // Found" cards for tools that were never here just buries the
+            // ones that matter.
             for (const [id, app] of Object.entries(appsData)) {
+                if (!app.installed && !app.custom) continue;
                 const isSel = selectedAppIds.includes(id);
                 // A <label> wrapping a real checkbox, exactly like .skill-item
                 // already does elsewhere in this file: native label/checkbox
@@ -2743,8 +2710,12 @@
                             <div class="app-stat-label">${t('stat-skills')}</div>
                         </div>
                         <div>
-                            <div class="app-stat-val">${app.sessions_count}</div>
-                            <div class="app-stat-label">${t('stat-files')}</div>
+                            <div class="app-stat-val">${app.plugins.length}</div>
+                            <div class="app-stat-label">${t('stat-plugins')}</div>
+                        </div>
+                        <div>
+                            <div class="app-stat-val">${app.mcp_servers.length}</div>
+                            <div class="app-stat-label">${t('stat-mcp')}</div>
                         </div>
                     </div>
                     <div style="font-size:10px; color:var(--text-faded); margin-top:8px; overflow-wrap:anywhere;">${escapeHtml(app.base_dir)}</div>
@@ -2797,9 +2768,21 @@
             }
             const name = prompt(t('custom-tool-name-prompt'), '');
             if (!name || !name.trim()) return;
-            const skillsSubfolder = prompt(t('custom-tool-skills-prompt'), 'skills');
+
+            // Best-effort guess at the tool's own skills/plugins/mcp
+            // subfolder names by scanning its root for matching folder
+            // names - just a starting value in each prompt below, not
+            // applied silently; the user sees and can change every one.
+            const guess = await window.pywebview.api.detect_custom_tool_subfolders(response.path);
+
+            const skillsSubfolder = prompt(t('custom-tool-skills-prompt'), guess.skills_subfolder);
             if (skillsSubfolder === null) return;
-            const res = await window.pywebview.api.add_custom_tool(name.trim(), response.path, skillsSubfolder.trim());
+            const pluginsSubfolder = prompt(t('custom-tool-plugins-prompt'), guess.plugins_subfolder);
+            if (pluginsSubfolder === null) return;
+            const mcpSubfolder = prompt(t('custom-tool-mcp-prompt'), guess.mcp_subfolder);
+            if (mcpSubfolder === null) return;
+
+            const res = await window.pywebview.api.add_custom_tool(name.trim(), response.path, skillsSubfolder.trim(), pluginsSubfolder.trim(), mcpSubfolder.trim());
             if (!res.success) return alert(res.error);
             appsData = await window.pywebview.api.get_apps_status();
             renderAppsGrid();
@@ -2924,8 +2907,6 @@
                 btn.innerHTML = `<span>${t('action-restore')}</span>`;
             } else if (currentMode === 'backup') {
                 btn.innerHTML = `<span>${t('action-backup')}</span>`;
-            } else if (currentMode === 'transfer') {
-                btn.innerHTML = `<span>${t('action-transfer')}</span>`;
             } else {
                 btn.innerHTML = `<span>${t('action-default')}</span>`;
             }
@@ -2973,13 +2954,6 @@
                             skills: true,
                             sessions: document.getElementById('chk-include-sessions').checked
                         }
-                    });
-                } else if (currentMode === 'transfer') {
-                    res = await window.pywebview.api.perform_transfer({
-                        source_app: document.getElementById('transfer-src').value,
-                        target_app: document.getElementById('transfer-dst').value,
-                        transfer_skills: true,
-                        transfer_mcps: true
                     });
                 }
 

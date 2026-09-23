@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import json
+import stat
 import shutil
 import tempfile
 import subprocess
@@ -49,6 +50,23 @@ def get_log_dir():
     return os.path.join(os.environ.get("LOCALAPPDATA") or tempfile.gettempdir(), "StrLink", "logs")
 
 
+def desktop_dir():
+    """Resolve the real per-user Desktop folder via the registry rather than
+    assuming ~/Desktop - that guess breaks silently on a machine where the
+    Desktop is redirected (OneDrive Known Folder Move is common on managed
+    Windows PCs)."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders") as key:
+            path, _ = winreg.QueryValueEx(key, "Desktop")
+        path = os.path.expandvars(path)
+        if os.path.isdir(path):
+            return path
+    except OSError:
+        pass
+    return os.path.join(os.environ.get("USERPROFILE", str(Path.home())), "Desktop")
+
+
 # Best-effort tripwire for the most obviously dangerous patterns in a
 # downloaded skill's source - NOT a real security scanner. It only exists to
 # catch the crudest cases (encoded PowerShell payloads, base64-then-exec)
@@ -68,10 +86,19 @@ class Api:
     def __init__(self, backup_dir=None):
         self.backup_dir = os.path.abspath(backup_dir) if backup_dir else default_backup_dir()
         self.user_profile = os.environ.get("USERPROFILE", str(Path.home()))
-        self.skills_library_dir = os.path.join(self.backup_dir, "Skills_Library")
-        self.categories_json_path = os.path.join(self.backup_dir, "skills_categories.json")
+        # Skills/plugins/MCP downloads live in a fixed Desktop location,
+        # deliberately independent of backup_dir (which can be a portable
+        # USB drive, a network path, etc.) - this is the one thing meant to
+        # always be at the same, easy-to-find spot regardless of where
+        # snapshots happen to be stored.
+        self.downloads_dir = os.path.join(desktop_dir(), "StrLink", "Downloads")
+        self.skills_library_dir = os.path.join(self.downloads_dir, "Skills")
+        self.plugins_download_dir = os.path.join(self.downloads_dir, "Plugins")
+        self.mcp_download_dir = os.path.join(self.downloads_dir, "MCP")
+        self.categories_json_path = os.path.join(self.downloads_dir, "skills_categories.json")
         self.templates_dir = os.path.join(self.backup_dir, "Templates")
         self.personal_data_dir = os.path.join(self.backup_dir, "Personal_Data")
+        self._migrate_downloads_to_desktop()
         # Underscore-prefixed: pywebview's inject_pywebview() walks every
         # PUBLIC attribute of this Api object via dir()/getattr() to build
         # the window.pywebview.api.* JS bridge, recursing into any
@@ -101,6 +128,69 @@ class Api:
             except Exception:
                 pass
         return {}
+
+    @staticmethod
+    def _clear_readonly_and_retry(func, path, exc):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    def _migrate_downloads_to_desktop(self):
+        """One-time move of skill/MCP/plugin downloads from their old
+        backup_dir-relative locations to the new, fixed Desktop location.
+        Runs on every startup but is a no-op the moment the old folders are
+        gone, so it's safe to call unconditionally rather than tracking a
+        "already migrated" flag. Per-item failures (locked file, etc.) are
+        skipped rather than aborting the whole migration - matching the
+        resilience pattern used elsewhere in this file - and a skipped item
+        simply stays at the old location to be picked up on a later run
+        rather than being lost.
+        """
+        moves = [
+            (os.path.join(self.backup_dir, "Skills_Library"), self.skills_library_dir),
+            (os.path.join(self.backup_dir, "Downloads", "mcp"), self.mcp_download_dir),
+            (os.path.join(self.backup_dir, "Downloads", "plugin"), self.plugins_download_dir),
+        ]
+        moved_any = False
+        for old_dir, new_dir in moves:
+            try:
+                if not os.path.isdir(old_dir) or Path(old_dir).resolve() == Path(new_dir).resolve():
+                    continue
+            except OSError:
+                continue
+            os.makedirs(new_dir, exist_ok=True)
+            for entry in os.listdir(old_dir):
+                src = os.path.join(old_dir, entry)
+                dst = os.path.join(new_dir, entry)
+                if os.path.exists(dst):
+                    continue
+                try:
+                    # Not shutil.move(): a downloaded skill's .git/objects
+                    # pack files are read-only (git's own convention), and
+                    # shutil.move's cross-drive fallback (copy, then delete
+                    # the original) fails to delete a read-only file on
+                    # Windows - which left a fully-copied destination behind
+                    # while silently keeping the "old" source too, the one
+                    # time this ran for real. Copy first, then clear
+                    # read-only before removing the original so cleanup
+                    # can't get stuck on it.
+                    shutil.copytree(src, dst)
+                    shutil.rmtree(src, onexc=self._clear_readonly_and_retry)
+                    moved_any = True
+                except OSError:
+                    continue
+            try:
+                if not os.listdir(old_dir):
+                    os.rmdir(old_dir)
+            except OSError:
+                pass
+        if moved_any:
+            self._rebuild_categories_json()
+
+    def _download_dir_for(self, pkg_type):
+        """Single source of truth for where each package type's downloads
+        live, so search_online()'s already-downloaded check, the actual
+        download destination, and Open Folder can never drift apart."""
+        return {"skill": self.skills_library_dir, "mcp": self.mcp_download_dir, "plugin": self.plugins_download_dir}[pkg_type]
 
     def get_system_info(self):
         return {
@@ -306,22 +396,29 @@ class Api:
         }
 
         # User-added tools StrLink has no built-in detection rules for.
-        # sessions_count is repurposed as a plain file count here - "MCP
-        # servers"/"plugins" aren't concepts StrLink can identify inside a
-        # folder it knows nothing about, so those stay at their honest zero
-        # rather than guessing. Skills are the one exception: the user names
-        # a subfolder (default "skills") when adding the tool, so StrLink can
-        # list what's already there the same way it does for a recognized
-        # tool - and Library deployment (see backup_engine._plan) can target it.
+        # sessions_count is repurposed as a plain file count here. Skills,
+        # plugins and MCP are the exception: the user names a subfolder for
+        # each (defaulting to "skills"/"plugins"/"mcp") when adding the tool,
+        # so StrLink can list what's already there the same way it does for a
+        # recognized tool - and Library deployment (see backup_engine._plan)
+        # can target the skills/plugins ones. There's no config file to read
+        # real MCP server names from the way known tools have, so each
+        # subfolder found under the MCP subfolder is listed by its own
+        # folder name instead - an approximation, not a real server list.
+        def list_subfolders(base, subfolder):
+            target = os.path.join(base, *subfolder.replace("\\", "/").split("/"))
+            names = [d for d in os.listdir(target) if os.path.isdir(os.path.join(target, d))] if os.path.isdir(target) else []
+            return target, names
+
         for tool in self._read_custom_tools():
             root = tool["root"]
             file_count = 0
             if os.path.isdir(root):
                 for _, _, files in os.walk(root):
                     file_count += len(files)
-            skills_subfolder = tool.get("skills_subfolder") or "skills"
-            skills_dir = os.path.join(root, *skills_subfolder.replace("\\", "/").split("/"))
-            installed_skills = [d for d in os.listdir(skills_dir) if os.path.isdir(os.path.join(skills_dir, d))] if os.path.isdir(skills_dir) else []
+            skills_dir, installed_skills = list_subfolders(root, tool.get("skills_subfolder") or "skills")
+            _plugins_dir, installed_plugins = list_subfolders(root, tool.get("plugins_subfolder") or "plugins")
+            _mcp_dir, installed_mcp = list_subfolders(root, tool.get("mcp_subfolder") or "mcp")
             apps[tool["id"]] = {
                 "name": tool["name"],
                 "id": tool["id"],
@@ -330,10 +427,10 @@ class Api:
                 "skills_dir": skills_dir if os.path.isdir(skills_dir) else "",
                 "skills_count": len(installed_skills),
                 "installed_skills": installed_skills,
-                "mcp_servers": [],
+                "mcp_servers": installed_mcp,
                 "sessions_count": file_count,
                 "has_settings": False,
-                "plugins": [],
+                "plugins": installed_plugins,
                 "custom": True,
             }
 
@@ -393,7 +490,41 @@ class Api:
         except Exception as error:
             return {"success": False, "error": str(error)}
 
-    def add_custom_tool(self, name, path, skills_subfolder=None):
+    def detect_custom_tool_subfolders(self, path):
+        """Best-effort guess at which of a custom tool's own subfolders hold
+        skills/plugins/MCP, by name only (skills/skill, plugins/plugin/
+        extension/extensions, mcp/mcp_servers/mcpservers - case-insensitive).
+        Only ever a starting suggestion the user sees and can override before
+        anything is saved - there's no real convention to rely on for a tool
+        StrLink has never heard of, so this is a convenience, not a promise."""
+        guesses = {"skills_subfolder": "skills", "plugins_subfolder": "plugins", "mcp_subfolder": "mcp"}
+        try:
+            if not path or not os.path.isdir(path):
+                return guesses
+            keyword_map = {
+                "skills_subfolder": {"skills", "skill"},
+                "plugins_subfolder": {"plugins", "plugin", "extensions", "extension"},
+                "mcp_subfolder": {"mcp", "mcp_servers", "mcpservers"},
+            }
+            for entry in os.listdir(path):
+                if not os.path.isdir(os.path.join(path, entry)):
+                    continue
+                lowered = entry.lower()
+                for key, keywords in keyword_map.items():
+                    if lowered in keywords:
+                        guesses[key] = entry
+        except OSError:
+            pass
+        return guesses
+
+    def _validate_relative_subfolder(self, value, default, label):
+        value = (value or default).strip().strip("/\\")
+        parts = Path(value).parts
+        if not value or ".." in parts or Path(value).is_absolute() or ":" in value:
+            raise ValueError(f'{label} folder must be a simple relative path, e.g. "{default}"')
+        return value
+
+    def add_custom_tool(self, name, path, skills_subfolder=None, plugins_subfolder=None, mcp_subfolder=None):
         try:
             name = (name or "").strip()
             if not name:
@@ -402,10 +533,9 @@ class Api:
                 raise ValueError("Name is too long")
             if not path or not os.path.isdir(path):
                 raise ValueError("Select an existing folder")
-            skills_subfolder = (skills_subfolder or "skills").strip().strip("/\\")
-            subfolder_parts = Path(skills_subfolder).parts
-            if not skills_subfolder or ".." in subfolder_parts or Path(skills_subfolder).is_absolute() or ":" in skills_subfolder:
-                raise ValueError('Skills folder must be a simple relative path, e.g. "skills"')
+            skills_subfolder = self._validate_relative_subfolder(skills_subfolder, "skills", "Skills")
+            plugins_subfolder = self._validate_relative_subfolder(plugins_subfolder, "plugins", "Plugins")
+            mcp_subfolder = self._validate_relative_subfolder(mcp_subfolder, "mcp", "MCP")
             resolved = Path(path).resolve()
             if resolved == Path(resolved.anchor) or resolved == Path(self.user_profile).resolve():
                 raise ValueError("Select the tool's own data folder, not a drive root or your whole user folder")
@@ -427,7 +557,7 @@ class Api:
             while tool_id in existing_ids:
                 suffix += 1
                 tool_id = f"{base_id}-{suffix}"
-            tools.append({"id": tool_id, "name": name, "root": str(resolved), "skills_subfolder": skills_subfolder})
+            tools.append({"id": tool_id, "name": name, "root": str(resolved), "skills_subfolder": skills_subfolder, "plugins_subfolder": plugins_subfolder, "mcp_subfolder": mcp_subfolder})
             self._update_preferences(custom_tools=tools)
             return {"success": True, "tools": tools}
         except Exception as error:
@@ -615,11 +745,7 @@ class Api:
                     # doesn't try to) detect those in advance - same
                     # limitation the existing post-download quarantine
                     # message has.
-                    if pkg_type == "skill":
-                        already_installed_dir = os.path.join(self.skills_library_dir, repo_name)
-                    else:
-                        already_installed_dir = os.path.join(self.backup_dir, "Downloads", pkg_type, repo_name)
-                    already_installed = bool(repo_name) and os.path.isdir(already_installed_dir)
+                    already_installed = bool(repo_name) and os.path.isdir(os.path.join(self._download_dir_for(pkg_type), repo_name))
                     results.append({
                         "name": item.get("name"),
                         "full_name": item.get("full_name"),
@@ -769,7 +895,7 @@ class Api:
                 # instead, under Downloads/<mcp|plugin>/<name> rather than
                 # Skills_Library, so it never gets mistaken for an
                 # installable skill by the Library-deploy feature.
-                holding_dir = os.path.join(self.backup_dir, "Downloads", pkg_type)
+                holding_dir = self._download_dir_for(pkg_type)
                 os.makedirs(holding_dir, exist_ok=True)
                 target = os.path.join(holding_dir, pkg_name)
                 if os.path.exists(target):
@@ -839,12 +965,9 @@ class Api:
         try:
             if not re.fullmatch(r"[A-Za-z0-9_.-]+", name or "") or name in (".", ".."):
                 raise ValueError("Invalid name")
-            if kind == "skill":
-                target = Path(self.skills_library_dir) / name
-            elif kind in ("mcp", "plugin"):
-                target = Path(self.backup_dir) / "Downloads" / kind / name
-            else:
+            if kind not in ("skill", "mcp", "plugin"):
                 raise ValueError("Invalid kind")
+            target = Path(self._download_dir_for(kind)) / name
             if not target.is_dir():
                 raise ValueError("Folder not found: " + str(target))
             os.startfile(target)
@@ -929,9 +1052,6 @@ class Api:
     def rollback_restore(self, identifier, password=""):
         return self._engine.rollback(identifier, password)
 
-    def perform_transfer(self, options):
-        return {"success": False, "error": "Direct cross-app overwrite is disabled for safety. Use dated backups and previewed restore; MCP formats are not interchangeable.", "logs": []}
-
     def open_backup_folder(self, folder_path=None):
         try:
             target = folder_path or self.backup_dir
@@ -956,11 +1076,11 @@ class Api:
                 pass
             self._update_preferences(backup_dir=str(resolved))
             self.backup_dir = str(resolved)
-            self.skills_library_dir = os.path.join(self.backup_dir, "Skills_Library")
-            self.categories_json_path = os.path.join(self.backup_dir, "skills_categories.json")
             self.templates_dir = os.path.join(self.backup_dir, "Templates")
             self.personal_data_dir = os.path.join(self.backup_dir, "Personal_Data")
-            self.categories = self._load_categories()
+            # skills_library_dir/plugins_download_dir/mcp_download_dir are
+            # deliberately NOT recomputed here - they live on the Desktop,
+            # independent of backup_dir (see __init__).
             count = len(os.listdir(self.skills_library_dir)) if os.path.isdir(self.skills_library_dir) else 0
             return {"success": True, "backup_dir": self.backup_dir, "skills_library_dir": self.skills_library_dir, "skills_count": count, "categories": self.categories}
         except Exception as error:
