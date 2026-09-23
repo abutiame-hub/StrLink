@@ -4,6 +4,8 @@ Windows desktop backup utility. Requires Microsoft Edge WebView2 Runtime.
 The EXE bundles Python; it is not digitally signed. A trusted signing certificate
 must be supplied by the publisher before signing a release.
 
+Licensed under the [MIT License](LICENSE).
+
 ## Build
 
 Use Python 3.14 on Windows, then from this directory:
@@ -62,8 +64,22 @@ restore/rollback. Databases with WAL files are refused for restore.
 Preferences are stored in `%LOCALAPPDATA%\StrLink\preferences.json` and logs in
 `%LOCALAPPDATA%\StrLink\logs`. The saved destination takes precedence. Otherwise
 the portable library beside the EXE is used, followed by an existing
-`D:\AI\_BACKUP`, an existing `D:\AI_BACKUP`, then `~/StrLink_Backup`.
+`D:\AI_BACKUP` (the original development machine's layout; harmless on a
+machine without one), then `~/StrLink_Backup`.
 Changing the destination does not migrate old snapshots.
+
+## Custom tools
+
+Tools StrLink has no built-in detection for can be added from "Add Custom
+Tool" next to the AI-tool cards: point it at the tool's own data folder and
+give it a name. StrLink cannot tell what's inside a folder it doesn't
+recognize, so it does not sort a custom tool's contents into
+skills/sessions/settings/etc. - every item directly inside the chosen folder
+becomes its own selectable entry instead (a subfolder or a loose file alike),
+so picking exactly which parts to back up (e.g. an `mcp/` or `plugins/`
+folder while leaving a `skills/` folder unselected) works the same way
+selecting individual skills does for a recognized tool. Removing a custom
+tool only forgets it in StrLink; nothing on disk is touched.
 
 ## Scope and limitations
 

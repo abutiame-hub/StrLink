@@ -1231,10 +1231,6 @@
 
                 <div id="about-developer-block" style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border); font-size:12px; color:var(--text-faded); display:flex; flex-direction:column; gap:8px; align-items:center;">
                     <div><span id="txt-developed-by">Developed by</span> <strong style="color:var(--text-main); text-transform:uppercase; letter-spacing:0.5px;">TYAMEELKHOLY</strong></div>
-                    <div style="display:flex; gap:18px; flex-wrap:wrap; justify-content:center;">
-                        <a href="tel:+201091070010" style="color:#38bdf8; text-decoration:none;">📞 01091070010</a>
-                        <a href="mailto:abutiame@gmail.com" style="color:#38bdf8; text-decoration:none;">✉️ abutiame@gmail.com</a>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1386,8 +1382,9 @@
                 <button class="btn-outline" style="padding:4px 10px;" onclick="openBrowserExportHelp('claude')">Claude.ai ↗</button>
                 <button class="btn-outline" style="padding:4px 10px;" onclick="openBrowserExportHelp('gemini')">Gemini ↗</button>
             </div>
-            <div style="margin: 0 0 14px;">
+            <div style="margin: 0 0 14px; display:flex; gap:10px; flex-wrap:wrap;">
                 <button class="btn-outline" id="txt-scan-more-btn" onclick="startAiToolScan()">🔍 Scan this PC for more AI tools</button>
+                <button class="btn-outline" id="txt-add-custom-tool-btn" onclick="addCustomTool()">➕ Add Custom Tool</button>
             </div>
             <div class="apps-grid" id="apps-grid">
                 <!-- Dynamically Populated -->
@@ -1801,6 +1798,11 @@
                 'tg-source-tool-label': 'AI tool this project uses',
                 'discovery-download-dest': 'Downloads are saved into:',
                 'discovery-change-dest': 'Change',
+                'add-custom-tool-btn': '➕ Add Custom Tool',
+                'stat-files': 'Files',
+                'remove-custom-tool': 'Remove',
+                'custom-tool-name-prompt': "This tool's name (shown on its card):",
+                'custom-tool-remove-confirm': 'Stop tracking this custom tool? Nothing on disk is deleted.',
             },
             ar: {
                 'app-subtitle-short': 'مدير أدوات ومهارات الذكاء الاصطناعي',
@@ -1941,6 +1943,11 @@
                 'tg-source-tool-label': 'أداة الذكاء الاصطناعي اللي بيستخدمها المشروع',
                 'discovery-download-dest': 'التحميلات بتتحفظ في:',
                 'discovery-change-dest': 'تغيير',
+                'add-custom-tool-btn': '➕ إضافة أداة مخصصة',
+                'stat-files': 'ملفات',
+                'remove-custom-tool': 'إزالة',
+                'custom-tool-name-prompt': 'اسم الأداة دي (هيظهر على بطاقتها):',
+                'custom-tool-remove-confirm': 'توقف متابعة الأداة المخصصة دي؟ مفيش حاجة هتتمسح من الجهاز.',
             }
         };
 
@@ -2391,13 +2398,23 @@
                     <div class="app-header">
                         <div class="app-name-box">
                             <input type="checkbox" class="app-checkbox" ${isSel ? 'checked' : ''} ${app.installed || currentMode === 'restore' ? '' : 'disabled'} onchange="toggleAppSelection('${id}')">
-                            <div class="icon-badge sm ${badgeTints[id] || 'badge-slate'}"><svg class="icon"><use href="#${icons[id] || 'icon-settings'}"/></svg></div>
+                            <div class="icon-badge sm ${badgeTints[id] || 'badge-slate'}"><svg class="icon"><use href="#${app.custom ? 'icon-folder' : (icons[id] || 'icon-settings')}"/></svg></div>
                             <h4>${escapeHtml(app.name)}</h4>
                         </div>
                         <span class="${app.installed ? 'badge-installed' : 'badge-missing'}">
                             ${app.installed ? t('installed-badge') : t('missing-badge')}
                         </span>
                     </div>
+                    ${app.custom ? `
+                    <div class="app-stats">
+                        <div>
+                            <div class="app-stat-val">${app.sessions_count}</div>
+                            <div class="app-stat-label">${t('stat-files')}</div>
+                        </div>
+                    </div>
+                    <div style="font-size:10px; color:var(--text-faded); margin-top:8px; overflow-wrap:anywhere;">${escapeHtml(app.base_dir)}</div>
+                    <button type="button" class="btn-outline" style="margin-top:8px;padding:4px 10px;font-size:11px;" onclick="event.preventDefault(); removeCustomTool('${id}', '${escapeHtml(app.name).replace(/'/g, "\\'")}')">${escapeHtml(t('remove-custom-tool'))}</button>
+                    ` : `
                     <div class="app-stats">
                         <div>
                             <div class="app-stat-val">${app.skills_count}</div>
@@ -2413,6 +2430,7 @@
                         </div>
                     </div>
                     ${MCP_ONLY_APPS.has(id) ? `<div style="font-size:10px; color:var(--text-faded); margin-top:8px;">نسخ ملفات الإعدادات والاتصالات المكتشفة فقط؛ لا يشمل المحادثات السحابية.</div>` : ''}
+                    `}
                 `;
                 grid.appendChild(card);
             }
@@ -2428,6 +2446,36 @@
             renderAppsGrid();
             renderCategories();
             updateActionButtons();
+        }
+
+        // Any tool StrLink doesn't already know about (no built-in detection
+        // rules for its file layout) can still be backed up: point this at
+        // the tool's own data folder and every item directly inside it
+        // becomes one selectable entry, the same way "skills/*" lists each
+        // skill for the tools StrLink does recognize by name.
+        async function addCustomTool() {
+            if (!window.pywebview) return;
+            const response = await window.pywebview.api.browse_custom_tool_folder();
+            if (!response.success) {
+                if (response.error) alert(response.error);
+                return;
+            }
+            const name = prompt(t('custom-tool-name-prompt'), '');
+            if (!name || !name.trim()) return;
+            const res = await window.pywebview.api.add_custom_tool(name.trim(), response.path);
+            if (!res.success) return alert(res.error);
+            appsData = await window.pywebview.api.get_apps_status();
+            renderAppsGrid();
+        }
+
+        async function removeCustomTool(toolId, toolName) {
+            if (!window.pywebview) return;
+            if (!confirm(t('custom-tool-remove-confirm'))) return;
+            const res = await window.pywebview.api.remove_custom_tool(toolId);
+            if (!res.success) return alert(res.error);
+            selectedAppIds = selectedAppIds.filter(id => id !== toolId);
+            appsData = await window.pywebview.api.get_apps_status();
+            renderAppsGrid();
         }
 
         function isSkillInstalledInTarget(skillName) {

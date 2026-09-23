@@ -2,7 +2,7 @@ let safeItems = [];
 let safeSelection = new Set();
 let safeBusy = false;
 let safeLoadRevision = 0;
-const safeCategoryNames = {skills: 'المهارات', sessions: 'المحادثات وبيانات الجلسات', settings: 'الإعدادات الفعلية', connections: 'الاتصالات وبيانات الدخول', plugins: 'الإضافات'};
+const safeCategoryNames = {skills: 'المهارات', sessions: 'المحادثات وبيانات الجلسات', settings: 'الإعدادات الفعلية', connections: 'الاتصالات وبيانات الدخول', plugins: 'الإضافات', data: 'بيانات الأداة المخصّصة'};
 
 function safeApi() {
     if (!window.pywebview || !window.pywebview.api) throw new Error('واجهة الاتصال غير جاهزة؛ أعد فتح البرنامج.');

@@ -134,13 +134,16 @@ class BackupEngine:
     def roots(self):
         home = Path(self.api.user_profile)
         roaming = Path(os.environ.get("APPDATA", home / "AppData" / "Roaming"))
-        return {
+        result = {
             "claude": home / ".claude", "claude_mcp": home,
             "gemini": home / ".gemini", "codex": home / ".codex",
             "cursor": home / ".cursor", "windsurf": home / ".codeium" / "windsurf",
             "claude_desktop": roaming / "Claude", "continue": home / ".continue",
             "lmstudio": home / ".lmstudio",
         }
+        for tool in self.api._read_custom_tools():
+            result[tool["id"]] = Path(tool["root"])
+        return result
 
     def catalog(self):
         definitions = {
@@ -154,6 +157,13 @@ class BackupEngine:
             "continue": {"settings": ["config.yaml", "config.json"], "connections": ["mcpServers/*"]},
             "lmstudio": {"connections": ["mcp.json"]},
         }
+        for tool in self.api._read_custom_tools():
+            # StrLink has no per-tool knowledge of a custom folder's layout,
+            # so it can't tell skills/sessions/settings apart inside it the
+            # way it can for a recognized tool. "*" lists everything directly
+            # inside the folder as its own item instead - the same mechanism
+            # "skills/*" already uses to list each skill, just at the root.
+            definitions[tool["id"]] = {"data": ["*"]}
         items = []
         for root_name, categories in definitions.items():
             root = self.roots()[root_name]
